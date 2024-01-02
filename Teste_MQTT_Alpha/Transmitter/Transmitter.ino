@@ -14,6 +14,10 @@
 #define WLAN_PASS      "cs2017cs3337"
 */
 
+//Define informacoes da rede VIVOFIBRA-09D8
+#define WLAN_SSID      "VIVOFIBRA-09D8"
+#define WLAN_PASS      "816329FCDE"
+
 
 /*
 //Define informacoes da rede Bia 2
@@ -21,9 +25,11 @@
 #define WLAN_PASS      "coisafacil"
 */
 
+/*
 //Define informacoes da rede da casa da Lu
-#define WLAN_SSID      "VIVOFIBRA-DB00-5G"
+#define WLAN_SSID      "VIVOFIBRA-DB00"
 #define WLAN_PASS      "55228E47BB"
+*/
 
 /*
 //Define informacoes da rede
@@ -91,7 +97,16 @@ mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
-
+String getMappedString(int potValue) {
+  // Determine the string value based on the potentiometer reading
+  if (potValue < 1365) { // Less than 1/3 of the potentiometer range
+    return "1";
+  } else if (potValue >= 1365 && potValue < 2730) { // Between 1/3 and 2/3 of the potentiometer range
+    return "2";
+  } else { // Greater than or equal to 2/3 of the potentiometer range
+    return "3";
+  }
+}
 void setup() {
   //Iniciando  
   Serial.begin(9600);
@@ -133,67 +148,52 @@ void setup() {
    reconnect();
    delay(500);      
 }
-
+//bool estado1 = 0, estado2 = 0, estado3 = 0;
 bool toggle = 0, count = 0;
-int porta_ligada, porta_desligada;
+String msg_append;
+//int porta_ligada, porta_desligada;
+
 void loop() {
-    if (!mqtt.connected()) {
-    //digitalWrite(33, HIGH);
+  if (!mqtt.connected()) {
     reconnect();
   }
+
   int potValue = analogRead(34);
-  if (potValue >= 2730) { // Greater than or equal to 2/3 of the potentiometer range
-    /*porta_ligada = 5;
-    porta_desligada = 18;
-    */digitalWrite(17, LOW);    
-    digitalWrite(18, HIGH); // Turn port 5 on
-    digitalWrite(5, LOW);  // Turn port 18 off
-  } else if (potValue >= 1365 && potValue < 2730) { // Between 1/3 and 2/3 of the potentiometer range
-    /*porta_ligada = 18;
-    porta_desligada = 5;
-    */digitalWrite(17, LOW);
-    digitalWrite(18, LOW);   // Turn port 5 off
-    digitalWrite(5, HIGH); // Turn port 18 on
-  } else { // Less than 1/3 of the potentiometer range
+
+  // Potentiometer value-based control of digital outputs
+  if (potValue >= 2730) {
+    digitalWrite(17, LOW);
+    digitalWrite(18, HIGH);
+    digitalWrite(5, LOW);
+  } else if (potValue >= 1365 && potValue < 2730) {
+    digitalWrite(17, LOW);
+    digitalWrite(18, LOW);
+    digitalWrite(5, HIGH);
+  } else {
     digitalWrite(17, HIGH);
-    digitalWrite(5, LOW);   // Turn port 5 off
-    digitalWrite(18, LOW);  // Turn port 18 off*/
+    digitalWrite(5, LOW);
+    digitalWrite(18, LOW);
   }
 
-  //Serial.println(potValue);
   String msg = getMappedString(potValue);
-  if (!digitalRead(32) and toggle == 0 and count == 0){
-    msg += '1';
-    mqtt.publish("topic", msg.c_str(), true);
-    Serial.println("numero 1 publicado");
-    //toggle = !toggle; 
-    count = !count;
-    /*digitalWrite(porta_ligada, HIGH);
-    digitalWrite(porta_desligada, LOW);*/
-    delay(200);
-  } else if(!digitalRead(32) and count == 1){
-    msg += '0';
-    mqtt.publish("topic", msg.c_str(), true);
-    Serial.println("numero 0 publicado");
-    toggle = !toggle; 
-    count = !count;
-    //digitalWrite(porta_ligada, LOW);
-    delay(200);
-  }
-  else{
-    toggle = 0;
-    //Serial.println("não publicado");
-  }
-}
 
-String getMappedString(int potValue) {
-  // Determine the string value based on the potentiometer reading
-  if (potValue < 1365) { // Less than 1/3 of the potentiometer range
-    return "1";
-  } else if (potValue >= 1365 && potValue < 2730) { // Between 1/3 and 2/3 of the potentiometer range
-    return "2";
-  } else { // Greater than or equal to 2/3 of the potentiometer range
-    return "3";
+  // Set msg_append based on the selected value and estado state
+
+  // Process button press
+  if (!digitalRead(32) && toggle == false) {
+    msg += '0';
+    Serial.println(msg);
+    mqtt.publish("topic", msg.c_str(), true);
+    delay(200);
+    count = !count;
+    toggle = true;
+  } else if (!digitalRead(32) && count == true) {
+    msg += '1';
+    Serial.println(msg);
+    mqtt.publish("topic", msg.c_str(), true);
+    delay(200);
+    toggle = false;
+    count = !count;
   }
 }
 
@@ -201,6 +201,7 @@ void reconnect() {
   //Rotina de conexao
   while (!mqtt.connected()) {
     digitalWrite(33, LOW);
+    digitalWrite(25, HIGH);
     Serial.print("Conectando ao broker MQTT...");
     String clientId = "Esp32";
     clientId += String(random(0xffff), HEX);

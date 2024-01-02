@@ -18,9 +18,13 @@
 #define WLAN_PASS      "coisafacil"
 */
 
+//Define informacoes da rede VIVOFIBRA-09D8
+#define WLAN_SSID      "VIVOFIBRA-09D8"
+#define WLAN_PASS      "816329FCDE"
+/*
 //Define informacoes da rede da casa da Lu
-#define WLAN_SSID      "VIVOFIBRA-DB00-5G"
-#define WLAN_PASS      "55228E47BB"
+#define WLAN_SSID      "VIVOFIBRA-DB00"
+#define WLAN_PASS      "55228E47BB"*/
 /*
 //Define informacoes da rede do escritorio 
 #define WLAN_SSID      "Escritorio"
@@ -126,18 +130,17 @@ void handleReceivedValue(int value) {
 
 
 
-
-int leds[4] = [33, 26,27 19];
+int leds[4] = {33, 26,27,19};
 void setup() {
   //Iniciando  
   Serial.begin(9600);
   Serial.println("Inicio");
   //pinMode(33, OUTPUT);
-  for (i=0;i<4;i++){pinMode(leds[i], OUTPUT);}
-  pinMode(33, OUTPUT); // direita
+  for (int i=0;i<4;i++){pinMode(leds[i], OUTPUT);}
+  /*pinMode(33, OUTPUT); // direita
   pinMode(26, OUTPUT); //centro 
   pinMode(27, OUTPUT); // esquerda
-  pinMode(19, OUTPUT); // led para conexão 
+  pinMode(19, OUTPUT); // led para conexão*/ 
   wait(500,2); 
   mqtt.setCallback(callback); 
 
