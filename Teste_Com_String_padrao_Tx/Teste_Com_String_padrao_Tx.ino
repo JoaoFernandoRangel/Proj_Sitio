@@ -99,6 +99,7 @@ void setup() {
     Serial.println("Inicio");
   // declara os pinos de saida e entrada
    pinMode(32, INPUT_PULLUP); // botao
+   pinMode(13, INPUT_PULLUP); // botao kill switch
    pinMode(34, INPUT); // leitura potenciometro
    pinMode(17, OUTPUT); // led Verde
    pinMode(18, OUTPUT); // led Vermelho
@@ -140,11 +141,13 @@ void setup() {
 
 
 
-bool toggle = false, toggle1 = false;
+bool toggle = false, toggle1 = false, toggle_ks = false;
 String string_padrao = "10%20%30";
+String kill_switch = "10%20%30";
 String payload;
+String space = "-";
 //int porta_ligada, porta_desligada;
-
+int tempo_de_publi;
 void loop() {
   if (!mqtt.connected()) {
     reconnect();
@@ -169,22 +172,31 @@ void loop() {
     digitalWrite(18, LOW);
     //Serial.println("Direito");
   }
-
+  if (!digitalRead(13) && toggle_ks == false){
+    mqtt.publish("topic", kill_switch.c_str());
+    string_padrao = kill_switch;
+    Serial.print("kill_Switch apertado-");
+    Serial.print(kill_switch);
+    Serial.println("-publicado em topic");   
+    delay(200);
+  } else{
+     toggle_ks = !toggle_ks;
+  }
   if (!digitalRead(32) && toggle == false) {
     int valor_a_mudar = seleciona_parte(potValue);
-    Serial.print("primeiro IF ");
-    Serial.println(valor_a_mudar);
+    /*Serial.print("primeiro IF ");
+    Serial.println(valor_a_mudar);*/
     toggle1 = true;
 
     if (string_padrao[valor_a_mudar] == '0' && toggle1 == true) {
-      string_padrao[valor_a_mudar] = '1';
+      string_padrao[valor_a_mudar] = '1';/*
       Serial.print("Segundo IF ");
-      Serial.println(string_padrao[valor_a_mudar]);
+      Serial.println(string_padrao[valor_a_mudar]);*/
       toggle1 = !toggle1;
       delay(200);
     } else if (string_padrao[valor_a_mudar] == '1' && toggle1 == true) {
-      string_padrao[valor_a_mudar] = '0';
-      Serial.println("outro else");
+      string_padrao[valor_a_mudar] = '0';/*
+      Serial.println("outro else");*/
       toggle1 = !toggle1;  // Corrected from toggle to toggle1
       delay(200);
     }
@@ -192,10 +204,21 @@ void loop() {
     payload = string_padrao;
     Serial.println(payload);
     mqtt.publish("topic", payload.c_str());
+    tempo_de_publi = millis();
     toggle = !toggle;
     delay(200);    
   }else if (!digitalRead(32) && toggle == true){
     toggle = !toggle;
+  }
+  int tempo_idle = millis();
+  if (tempo_idle - tempo_de_publi == 5000){//impede a desconexão ao broker
+    String idle = "idle";
+    idle = idle + space + string_padrao;
+    mqtt.publish("idle", idle.c_str());
+    Serial.print(idle);
+    Serial.println(" publicado em idle");
+    tempo_de_publi = millis();
+
   }
  
 }
