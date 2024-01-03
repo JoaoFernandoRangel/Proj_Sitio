@@ -1,6 +1,5 @@
 //Precisa apertar 'boot' for fazer upload do código, na parte de 'connecting'
 
-//#include <bits/cpu_defines.h>
 #include <Arduino.h>
 #include "String.h"
 #include "time.h"
@@ -11,29 +10,30 @@
 //Define informacoes da rede VIVOFIBRA-09D8
 #define WLAN_SSID      "VIVOFIBRA-09D8"
 #define WLAN_PASS      "816329FCDE"
-
-//redes wifi
+// outras conexões wifi
+  /*  
+  //Define informacoes da rede casa piscina
+  #define WLAN_SSID      "CS_TELECOM_CS96"
+  #define WLAN_PASS      "cs2017cs3337"
+  */
+  
   /*
   //Define informacoes da rede Bia 2
   #define WLAN_SSID      "Bia 2"
   #define WLAN_PASS      "coisafacil"
   */
-  /*Define informacoes da rede casa piscina
-  #define WLAN_SSID      "CS_TELECOM_CS96"
-  #define WLAN_PASS      "cs2017cs3337"
-  */
-
+  
+  
   /*
   //Define informacoes da rede da casa da Lu
   #define WLAN_SSID      "VIVOFIBRA-DB00"
-  #define WLAN_PASS      "55228E47BB"
-  */
-
+  #define WLAN_PASS      "55228E47BB"*/
   /*
-  //Define informacoes da rede
+  //Define informacoes da rede do escritorio 
   #define WLAN_SSID      "Escritorio"
   #define WLAN_PASS      "cs2017cs3337"
   */
+
 
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
@@ -46,16 +46,19 @@ WiFiClientSecure client;
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
-
-void reconnect();
-unsigned long millisZero();
-void wait(int ciclo, int num);
+// prototipos de funcao
+  void reconnect();
+  unsigned long millisZero();
+  void wait(int ciclo, int num);
 
 //Variaveis
   int f = 10;                   // valor em hz
   unsigned long time_ini;       // tempo em ms que comecou o segundo no timestamp
   unsigned long refTime = 0;    // tempo de inicio do loop
   bool ativar = true;          // indica se vai rodar a transmissao
+
+
+
 
 static const char *root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
@@ -90,21 +93,39 @@ mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
-// declaração I/O
+void callback(char* topic, byte* payload, unsigned int length = 8) {
+  Serial.print("Message received on topic: ");
+  Serial.println(topic);
 
+  // Convert the payload to an integer
+  String receivedMessage = "";
+  for (int i = 0; i < length; i++) {
+    receivedMessage += (char)payload[i];
+  }
+  Serial.print("Print dentro de callback: ");
+  Serial.print(receivedMessage);
+  Serial.println("------");
+  handleMessage(receivedMessage);/*
+  Serial.print("Received Message: ");
+  Serial.println(receivedMessage);*/
 
+  // You can add additional logic here based on the received message
+  // For example, you can call other functions and pass the receivedValue to them
+  
+}
+
+//int leds[4] = {33, 26,27,19};
 void setup() {
   //Iniciando  
-    Serial.begin(9600);
-    Serial.println("Inicio");
-  // declara os pinos de saida e entrada
-   pinMode(32, INPUT_PULLUP); // botao
-   pinMode(34, INPUT); // leitura potenciometro
-   pinMode(17, OUTPUT); // led Verde
-   pinMode(18, OUTPUT); // led Vermelho
-   pinMode(5, OUTPUT); // led verde 2
-   pinMode(33, OUTPUT); //led para conexão mqtt, se aceso conectado 
-   wait(500,2);  
+  Serial.begin(9600);
+  Serial.println("Inicio");
+  //pinMode(33, OUTPUT);
+  pinMode(33, OUTPUT); // direita
+  pinMode(26, OUTPUT); //centro 
+  pinMode(27, OUTPUT); // esquerda
+  pinMode(19, OUTPUT); // led para conexão
+  wait(500,2); 
+  mqtt.setCallback(callback); 
   // Conecta o Wifi na rede
     Serial.println(); Serial.println();
     Serial.print("Conectando em ");
@@ -125,96 +146,32 @@ void setup() {
 
   //Conecta servidor MQTT
    client.setCACert(root_ca);
-   mqtt.setServer(SERVER, SERVERPORT);
-   reconnect();
-   delay(500);
-   }
+    mqtt.setServer(SERVER, SERVERPORT);
+    reconnect();
 
+  //Configura servidor de hora
+         
+}
 
-
-
-
-
-
-
-
-
-
-bool toggle = false, toggle1 = false;
-String string_padrao = "10%20%30";
-String payload;
-//int porta_ligada, porta_desligada;
 
 void loop() {
   if (!mqtt.connected()) {
     reconnect();
   }
+  
+  // Poll the MQTT client to check for incoming messages
+  mqtt.loop();
 
-  int potValue = analogRead(34);
-
-  // Acender de leds dependendo da leitura do potenciometro
-  if (potValue >= 2730) {
-    digitalWrite(17, LOW);
-    digitalWrite(18, HIGH);
-    digitalWrite(5, LOW);
-    //Serial.println("Esquerda");
-  } else if (potValue >= 1365 && potValue < 2730) {
-    digitalWrite(17, LOW);
-    digitalWrite(18, LOW);
-    digitalWrite(5, HIGH);
-    //Serial.println("Meio");
-  } else {
-    digitalWrite(17, HIGH);
-    digitalWrite(5, LOW);
-    digitalWrite(18, LOW);
-    //Serial.println("Direito");
-  }
-
-  if (!digitalRead(32) && toggle == false) {
-    int valor_a_mudar = seleciona_parte(potValue);
-    Serial.print("primeiro IF ");
-    Serial.println(valor_a_mudar);
-    toggle1 = true;
-
-    if (string_padrao[valor_a_mudar] == '0' && toggle1 == true) {
-      string_padrao[valor_a_mudar] = '1';
-      Serial.print("Segundo IF ");
-      Serial.println(string_padrao[valor_a_mudar]);
-      toggle1 = !toggle1;
-      delay(200);
-    } else if (string_padrao[valor_a_mudar] == '1' && toggle1 == true) {
-      string_padrao[valor_a_mudar] = '0';
-      Serial.println("outro else");
-      toggle1 = !toggle1;  // Corrected from toggle to toggle1
-      delay(200);
-    }
-
-    payload = string_padrao;
-    Serial.println(payload);
-    mqtt.publish("topic", payload.c_str());
-    toggle = !toggle;
-    delay(200);    
-  }else if (!digitalRead(32) && toggle == true){
-    toggle = !toggle;
-  }
- 
+  // Add any other logic or delay if needed
+  delay(1000);  // Adjust the delay according to your needs
 }
 
-//"10%20%30";
-int seleciona_parte(int valor){
-  if (valor >= 2730){
-    return 1;
-  } else if (valor >= 1365 && valor < 2730){
-    return 4;
-  } else{
-    return 7;
-  }
-}
+
+
 void reconnect() {
   //Rotina de conexao
   while (!mqtt.connected()) {
-    digitalWrite(33, LOW);
-    digitalWrite(25, HIGH);
+    digitalWrite(19, LOW);
     Serial.print("Conectando ao broker MQTT...");
     String clientId = "Esp32";
     clientId += String(random(0xffff), HEX);
@@ -230,16 +187,54 @@ void reconnect() {
       wait(1000,5);
     }
   }
-  digitalWrite(33, HIGH);}
+  digitalWrite(19, HIGH);
+}
 
-void wait(int ciclo, int num){ //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led  
+void handleMessage(String receivedMessage){
+Serial.println(receivedMessage);
+// Check if the received message is long enough
+if (receivedMessage.length() >= 8) {
+  if (receivedMessage[1] == '1') {
+    digitalWrite(27, HIGH);
+  } else if (receivedMessage[1] == '0') {
+    digitalWrite(27, LOW);
+  }
+
+  if (receivedMessage[4] == '1') {
+    digitalWrite(26, HIGH);
+  } else if (receivedMessage[4] == '0') {
+    digitalWrite(26, LOW);
+  }
+
+  if (receivedMessage[7] == '1') {
+    digitalWrite(33, HIGH);
+  } else if (receivedMessage[7] == '0') {
+    digitalWrite(33, LOW);
+  }
+} else {
+  Serial.println("Received message is too short");
+}
+
+Serial.print("Received Message: ");
+Serial.println(receivedMessage);
+}
+
+
+
+
+
+
+
+void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
+{  
   for(int i = 0; i < num; i++)
   {
     //digitalWrite(LED, HIGH);
     delay( int(ciclo/2) );
     //digitalWrite(LED, LOW);
     delay( int(ciclo/2) );
-  }}
+  }
+}
 
 
 
