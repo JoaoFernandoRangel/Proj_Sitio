@@ -100,6 +100,7 @@ void setup() {
   // declara os pinos de saida e entrada
    pinMode(32, INPUT_PULLUP); // botao
    pinMode(13, INPUT_PULLUP); // botao kill switch
+   pinMode(12, INPUT_PULLUP); // botao acende todos
    pinMode(34, INPUT); // leitura potenciometro
    pinMode(17, OUTPUT); // led Verde
    pinMode(18, OUTPUT); // led Vermelho
@@ -141,9 +142,10 @@ void setup() {
 
 
 
-bool toggle = false, toggle1 = false, toggle_ks = false;
+bool toggle = false, toggle1 = false, toggle_ks = false, toggle_al = false;
 String string_padrao = "10%20%30";
 String kill_switch = "10%20%30";
+String all_lit = "11%21%31";
 String payload;
 String space = "-";
 //int porta_ligada, porta_desligada;
@@ -173,14 +175,24 @@ void loop() {
     //Serial.println("Direito");
   }
   if (!digitalRead(13) && toggle_ks == false){
-    mqtt.publish("topic", kill_switch.c_str());
+    mqtt.publish("controle", kill_switch.c_str());
     string_padrao = kill_switch;
     Serial.print("kill_Switch apertado-");
     Serial.print(kill_switch);
-    Serial.println("-publicado em topic");   
+    Serial.println("-publicado em controle");   
     delay(200);
   } else{
      toggle_ks = !toggle_ks;
+  }
+   if (!digitalRead(12) && toggle_al == false){
+    mqtt.publish("controle", all_lit.c_str());
+    string_padrao = all_lit;
+    Serial.print("all_lit apertado-");
+    Serial.print(all_lit);
+    Serial.println("-publicado em controle");   
+    delay(200);
+  } else{
+     toggle_al = !toggle_al;
   }
   if (!digitalRead(32) && toggle == false) {
     int valor_a_mudar = seleciona_parte(potValue);
@@ -203,7 +215,7 @@ void loop() {
 
     payload = string_padrao;
     Serial.println(payload);
-    mqtt.publish("topic", payload.c_str());
+    mqtt.publish("controle", payload.c_str());
     tempo_de_publi = millis();
     toggle = !toggle;
     delay(200);    
@@ -214,9 +226,9 @@ void loop() {
   if (tempo_idle - tempo_de_publi == 5000){//impede a desconexão ao broker
     String idle = "idle";
     idle = idle + space + string_padrao;
-    mqtt.publish("idle", idle.c_str());
+    mqtt.publish("idle_tx", idle.c_str());
     Serial.print(idle);
-    Serial.println(" publicado em idle");
+    Serial.println(" publicado em idle_tx");
     tempo_de_publi = millis();
 
   }
@@ -245,7 +257,7 @@ void reconnect() {
     if (mqtt.connect(clientId.c_str(), user, pass)) {
       Serial.println("conectado");
 
-      mqtt.subscribe("topic", 0);   // inscricao no topico 'topic'
+      mqtt.subscribe("controle", 0);   // inscricao no topico 'controle'
     } else {
       Serial.print("falha, rc=");
       Serial.print(mqtt.state());

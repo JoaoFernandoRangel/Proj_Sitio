@@ -93,11 +93,13 @@ mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
-void callback(char* topic, byte* payload, unsigned int length = 8) {
+int interacao_com_mqtt;
+void callback(char* controle, byte* payload, unsigned int length = 8) {
   Serial.print("Message received on topic: ");
-  Serial.println(topic);
+  Serial.println(controle);
+  interacao_com_mqtt = millis();
 
-  // Convert the payload to an integer
+ 
   String receivedMessage = "";
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
@@ -105,13 +107,7 @@ void callback(char* topic, byte* payload, unsigned int length = 8) {
   Serial.print("Print dentro de callback: ");
   Serial.print(receivedMessage);
   Serial.println("------");
-  handleMessage(receivedMessage);/*
-  Serial.print("Received Message: ");
-  Serial.println(receivedMessage);*/
-
-  // You can add additional logic here based on the received message
-  // For example, you can call other functions and pass the receivedValue to them
-  
+  handleMessage(receivedMessage);
 }
 
 //int leds[4] = {33, 26,27,19};
@@ -161,7 +157,17 @@ void loop() {
   
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
-
+  int tempo_fora_do_loop = millis();
+  int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
+  if (diferenca >= 5000){
+    String idle_ping= "Rx_Idle_ping";
+    mqtt.publish("idle_rx", idle_ping.c_str());
+    Serial.print("Publicado ");
+    Serial.print(idle_ping);
+    Serial.println(" no tópico idle_rx.");
+    diferenca = 0;
+    interacao_com_mqtt = millis();
+  }
   // Add any other logic or delay if needed
   delay(1000);  // Adjust the delay according to your needs
 }
@@ -179,7 +185,7 @@ void reconnect() {
     if (mqtt.connect(clientId.c_str(), user, pass)) {
       Serial.println("conectado");
 
-      mqtt.subscribe("topic", 0);   // inscricao no topico 'topic'
+      mqtt.subscribe("controle", 0);   // inscricao no topico 'controle'
     } else {
       Serial.print("falha, rc=");
       Serial.print(mqtt.state());
