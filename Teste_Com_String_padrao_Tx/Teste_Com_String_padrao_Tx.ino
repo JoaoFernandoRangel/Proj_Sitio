@@ -235,7 +235,7 @@ void loop() {
   }
   int tempo_idle = millis();
   if (tempo_idle - tempo_de_publi == 5000){//impede a desconexão ao broker
-    String idle = "idle";
+    String idle = "TX-ping";
     String tempo = ntp.getFormattedTime();
     idle = idle + space + string_padrao + space + tempo;
     mqtt.publish("idle_tx", idle.c_str()); 

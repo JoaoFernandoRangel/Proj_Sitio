@@ -100,6 +100,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 int interacao_com_mqtt;
+String para_idle;
 void callback(char* controle, byte* payload, unsigned int length = 8) {
   Serial.print("Message received on topic: ");
   Serial.println(controle);
@@ -113,6 +114,7 @@ void callback(char* controle, byte* payload, unsigned int length = 8) {
   Serial.print("Print dentro de callback: ");
   Serial.print(receivedMessage);
   Serial.println("------");
+  para_idle = receivedMessage;
   handleMessage(receivedMessage);
 }
 bool primeiro_post;
@@ -159,6 +161,8 @@ void setup() {
 }
 
 String msg_inicio = "inicio_rx";
+String idle= "Rx-ping";
+String space = "-";
 void loop() {
   if (!mqtt.connected()) {
     reconnect();
@@ -175,10 +179,9 @@ void loop() {
   int tempo_fora_do_loop = millis();
   int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
   if (diferenca >= 5000){
-    String idle= "Rx_Idle_ping";
-    String space = "-";
+  
     String tempo = ntp.getFormattedTime();
-    String idle_ping = idle + space + tempo;
+    String idle_ping = idle + space + para_idle + space + tempo;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
     Serial.print(idle_ping);
@@ -243,12 +246,6 @@ if (receivedMessage.length() >= 8) {
 Serial.print("Received Message: ");
 Serial.println(receivedMessage);
 }
-
-
-
-
-
-
 
 void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
 {  
