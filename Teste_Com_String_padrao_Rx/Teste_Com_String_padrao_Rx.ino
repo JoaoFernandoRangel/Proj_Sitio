@@ -1,15 +1,18 @@
 //Precisa apertar 'boot' for fazer upload do código, na parte de 'connecting'
 
 #include <Arduino.h>
+#include <NTPClient.h>
 #include "String.h"
 #include "time.h"
 #include "PubSubClient.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-//Define informacoes da rede VIVOFIBRA-09D8
-#define WLAN_SSID      "VIVOFIBRA-09D8"
-#define WLAN_PASS      "816329FCDE"
+  //Define informacoes da rede Bia 2
+  #define WLAN_SSID      "Bia 2"
+  #define WLAN_PASS      "coisafacil"
+
+
 // outras conexões wifi
   /*  
   //Define informacoes da rede casa piscina
@@ -18,9 +21,9 @@
   */
   
   /*
-  //Define informacoes da rede Bia 2
-  #define WLAN_SSID      "Bia 2"
-  #define WLAN_PASS      "coisafacil"
+//Define informacoes da rede VIVOFIBRA-09D8
+#define WLAN_SSID      "VIVOFIBRA-09D8"
+#define WLAN_PASS      "816329FCDE"
   */
   
   
@@ -37,12 +40,15 @@
 
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
+//Cria uma instância para medição de tempo
+WiFiUDP ntpUDP;
+NTPClient ntp(ntpUDP);
 
 //Define informacoes MQTT
 #define SERVER      "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
 #define SERVERPORT   8883 
-#define user        "Campos"
-#define pass        "campos0102"
+#define user        "RX_Esp32"
+#define pass        "Campos0102"
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
@@ -109,7 +115,7 @@ void callback(char* controle, byte* payload, unsigned int length = 8) {
   Serial.println("------");
   handleMessage(receivedMessage);
 }
-
+bool primeiro_post;
 //int leds[4] = {33, 26,27,19};
 void setup() {
   //Iniciando  
@@ -122,6 +128,7 @@ void setup() {
   pinMode(19, OUTPUT); // led para conexão
   wait(500,2); 
   mqtt.setCallback(callback); 
+  primeiro_post = true;
   // Conecta o Wifi na rede
     Serial.println(); Serial.println();
     Serial.print("Conectando em ");
@@ -145,14 +152,22 @@ void setup() {
     mqtt.setServer(SERVER, SERVERPORT);
     reconnect();
 
-  //Configura servidor de hora
+ //Inicia NTP para adquirir data e hora
+   ntp.begin();
+   ntp.setTimeOffset(-10800);//corrige para fuso horário
          
 }
 
-
+String msg_inicio = "inicio_rx";
 void loop() {
   if (!mqtt.connected()) {
     reconnect();
+  }
+  if (primeiro_post == true){
+    mqtt.publish("idle_rx", msg_inicio.c_str());
+    Serial.println(msg_inicio);
+    interacao_com_mqtt = millis();
+    primeiro_post = false;
   }
   
   // Poll the MQTT client to check for incoming messages
@@ -160,7 +175,10 @@ void loop() {
   int tempo_fora_do_loop = millis();
   int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
   if (diferenca >= 5000){
-    String idle_ping= "Rx_Idle_ping";
+    String idle= "Rx_Idle_ping";
+    String space = "-";
+    String tempo = ntp.getFormattedTime();
+    String idle_ping = idle + space + tempo;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
     Serial.print(idle_ping);
@@ -169,6 +187,7 @@ void loop() {
     interacao_com_mqtt = millis();
   }
   // Add any other logic or delay if needed
+  ntp.update();
   delay(1000);  // Adjust the delay according to your needs
 }
 

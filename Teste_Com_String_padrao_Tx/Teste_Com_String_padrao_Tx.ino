@@ -2,26 +2,31 @@
 
 //#include <bits/cpu_defines.h>
 #include <Arduino.h>
+#include <NTPClient.h>
 #include "String.h"
 #include "time.h"
 #include "PubSubClient.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-//Define informacoes da rede VIVOFIBRA-09D8
-#define WLAN_SSID      "VIVOFIBRA-09D8"
-#define WLAN_PASS      "816329FCDE"
+
+//Define informacoes da rede Bia 2
+#define WLAN_SSID      "Bia 2"
+#define WLAN_PASS      "coisafacil"
+  
+
 
 //redes wifi
-  /*
-  //Define informacoes da rede Bia 2
-  #define WLAN_SSID      "Bia 2"
-  #define WLAN_PASS      "coisafacil"
-  */
+ 
   /*Define informacoes da rede casa piscina
   #define WLAN_SSID      "CS_TELECOM_CS96"
   #define WLAN_PASS      "cs2017cs3337"
   */
+
+  /*
+  //Define informacoes da rede VIVOFIBRA-09D8
+  #define WLAN_SSID      "VIVOFIBRA-09D8"
+  #define WLAN_PASS      "816329FCDE"*/
 
   /*
   //Define informacoes da rede da casa da Lu
@@ -37,12 +42,15 @@
 
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
+//Cria uma instância para medição de tempo
+WiFiUDP ntpUDP;
+NTPClient ntp(ntpUDP);
 
 //Define informacoes MQTT
 #define SERVER      "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
 #define SERVERPORT   8883 
-#define user        "Campos"
-#define pass        "campos0102"
+#define user        "TX_Esp32"
+#define pass        "Campos0102"
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
@@ -92,11 +100,12 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 )EOF";
 // declaração I/O
 
-
+bool primeiro_post;
 void setup() {
   //Iniciando  
     Serial.begin(9600);
     Serial.println("Inicio");
+    primeiro_post = true;
   // declara os pinos de saida e entrada
    pinMode(32, INPUT_PULLUP); // botao
    pinMode(13, INPUT_PULLUP); // botao kill switch
@@ -130,29 +139,29 @@ void setup() {
    mqtt.setServer(SERVER, SERVERPORT);
    reconnect();
    delay(500);
-   }
-
-
-
-
-
-
-
-
-
-
+  //Inicia NTP para adquirir data e hora
+   ntp.begin();
+   ntp.setTimeOffset(-10800);//corrige para fuso horário
+}
 
 bool toggle = false, toggle1 = false, toggle_ks = false, toggle_al = false;
 String string_padrao = "10%20%30";
 String kill_switch = "10%20%30";
 String all_lit = "11%21%31";
 String payload;
+String msg_inicio = "inicio_tx";
 String space = "-";
 //int porta_ligada, porta_desligada;
 int tempo_de_publi;
 void loop() {
   if (!mqtt.connected()) {
     reconnect();
+  }
+  if (primeiro_post == true){
+    mqtt.publish("idle_tx", msg_inicio.c_str());
+    Serial.println(msg_inicio);
+    tempo_de_publi = millis();
+    primeiro_post = false;
   }
 
   int potValue = analogRead(34);
@@ -177,6 +186,7 @@ void loop() {
   if (!digitalRead(13) && toggle_ks == false){
     mqtt.publish("controle", kill_switch.c_str());
     string_padrao = kill_switch;
+    tempo_de_publi = millis();
     Serial.print("kill_Switch apertado-");
     Serial.print(kill_switch);
     Serial.println("-publicado em controle");   
@@ -186,6 +196,7 @@ void loop() {
   }
    if (!digitalRead(12) && toggle_al == false){
     mqtt.publish("controle", all_lit.c_str());
+    tempo_de_publi = millis();
     string_padrao = all_lit;
     Serial.print("all_lit apertado-");
     Serial.print(all_lit);
@@ -225,14 +236,14 @@ void loop() {
   int tempo_idle = millis();
   if (tempo_idle - tempo_de_publi == 5000){//impede a desconexão ao broker
     String idle = "idle";
-    idle = idle + space + string_padrao;
-    mqtt.publish("idle_tx", idle.c_str());
+    String tempo = ntp.getFormattedTime();
+    idle = idle + space + string_padrao + space + tempo;
+    mqtt.publish("idle_tx", idle.c_str()); 
     Serial.print(idle);
     Serial.println(" publicado em idle_tx");
     tempo_de_publi = millis();
-
   }
- 
+  ntp.update();
 }
 
 //"10%20%30";
