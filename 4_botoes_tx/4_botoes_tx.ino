@@ -10,35 +10,72 @@
 #include <WiFiClientSecure.h>
 
 
-//Define informacoes da rede Bia 2
-#define WLAN_SSID      "Bia 2"
-#define WLAN_PASS      "coisafacil"
-  
+// Define a struct to hold WiFi configuration
+  struct WifiConfig {
+      const char* SSID;
+      const char* PASS;
+  };
 
+// Instantiate instances of the struct for each network
+  struct WifiConfig bia2Config = {
+    .SSID = "Bia 2",
+    .PASS = "coisafacil"
+  };
 
-//redes wifi
- 
-  /*Define informacoes da rede casa piscina
-  #define WLAN_SSID      "CS_TELECOM_CS96"
-  #define WLAN_PASS      "cs2017cs3337"
-  */
+  struct WifiConfig casaPiscinaConfig = {
+    .SSID = "CS_TELECOM_CS96",
+    .PASS = "cs2017cs3337"
+  };
 
-  /*
-  //Define informacoes da rede VIVOFIBRA-09D8
-  #define WLAN_SSID      "VIVOFIBRA-09D8"
-  #define WLAN_PASS      "816329FCDE"*/
+  struct WifiConfig vivofibraConfig = {
+    .SSID = "VIVOFIBRA-09D8",
+    .PASS = "816329FCDE"
+  };
 
-  /*
-  //Define informacoes da rede da casa da Lu
-  #define WLAN_SSID      "VIVOFIBRA-DB00"
-  #define WLAN_PASS      "55228E47BB"
-  */
+  struct WifiConfig casaLuConfig = {
+    .SSID = "VIVOFIBRA-DB00",
+    .PASS = "55228E47BB"
+  };
 
-  /*
-  //Define informacoes da rede
-  #define WLAN_SSID      "Escritorio"
-  #define WLAN_PASS      "cs2017cs3337"
-  */
+  struct WifiConfig escritorioConfig = {
+    .SSID = "Escritorio",
+    .PASS = "cs2017cs3337"
+  };
+
+// Create an array of WifiConfig structs
+  struct WifiConfig wifiVector[] = {
+      bia2Config,
+      casaPiscinaConfig,
+      vivofibraConfig,
+      casaLuConfig,
+      escritorioConfig
+  };
+
+void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis) {
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(config.SSID);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(config.SSID, config.PASS);
+
+    unsigned long startTime = millis();
+
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeoutMillis) {
+        delay(500);
+        Serial.print(".");
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println();
+        Serial.println("WiFi connected");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println();
+        Serial.println("Failed to connect to WiFi within the timeout. Moving to the next network.");
+    }
+}
 
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
@@ -128,22 +165,14 @@ void setup() {
 
    wait(500,2);  
   // Conecta o Wifi na rede
-    Serial.println(); Serial.println();
-    Serial.print("Conectando em ");
-    Serial.println(WLAN_SSID);
+    for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
+           connectToWiFi(wifiVector[ji], 15000); // Timeout set to 15 seconds (15000 milliseconds)
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WLAN_SSID, WLAN_PASS);  
-
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println();
-
-    Serial.println("WiFi connected");
-    Serial.print("IP address: "); 
-    Serial.println(WiFi.localIP());
+           // Check if connected to WiFi
+           if (WiFi.status() == WL_CONNECTED) {
+               break; // Exit the loop if connected successfully
+           }
+       }
 
   //Conecta servidor MQTT
    client.setCACert(root_ca);
