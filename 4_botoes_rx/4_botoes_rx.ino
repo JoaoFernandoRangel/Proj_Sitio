@@ -260,26 +260,26 @@ Serial.println(receivedMessage);
 // Check if the received message is long enough
 if (receivedMessage.length() >= 8) {
   if (receivedMessage[1] == '1') {
-    digitalWrite(13, HIGH);
-  } else if (receivedMessage[1] == '0') {
     digitalWrite(13, LOW);
+  } else if (receivedMessage[1] == '0') {
+    digitalWrite(13, HIGH);
   }
 
   if (receivedMessage[4] == '1') {
-    digitalWrite(27, HIGH);
-  } else if (receivedMessage[4] == '0') {
     digitalWrite(27, LOW);
+  } else if (receivedMessage[4] == '0') {
+    digitalWrite(27, HIGH);
   }
 
   if (receivedMessage[7] == '1') {
-    digitalWrite(26, HIGH);
-  } else if (receivedMessage[7] == '0') {
     digitalWrite(26, LOW);
+  } else if (receivedMessage[7] == '0') {
+    digitalWrite(26, HIGH);
   }
   if (receivedMessage[10] == '1') {
-    digitalWrite(33, HIGH);
-  } else if (receivedMessage[10] == '0') {
     digitalWrite(33, LOW);
+  } else if (receivedMessage[10] == '0') {
+    digitalWrite(33, HIGH);
   }
 } else {
   Serial.println("Received message is too short");
@@ -299,6 +299,5 @@ void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeti
     delay( int(ciclo/2) );
   }
 }
-
 
 

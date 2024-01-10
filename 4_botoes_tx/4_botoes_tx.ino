@@ -62,8 +62,10 @@ void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis)
     unsigned long startTime = millis();
 
     while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeoutMillis) {
+        
         delay(500);
         Serial.print(".");
+        
     }
 
     if (WiFi.status() == WL_CONNECTED) {
