@@ -21,7 +21,14 @@
     .SSID = "Bia 2",
     .PASS = "coisafacil"
   };
-
+  struct WifiConfig Cel_Joao = {
+    .SSID = "REDE",
+    .PASS = "12345678"
+  };
+struct WifiConfig sitioNewnet = {
+    .SSID = "SITIO_NEWNET",
+    .PASS = "coisafacil"
+  };
   struct WifiConfig casaPiscinaConfig = {
     .SSID = "CS_TELECOM_CS96",
     .PASS = "cs2017cs3337"
@@ -44,6 +51,8 @@
 
 // Create an array of WifiConfig structs
   struct WifiConfig wifiVector[] = {
+      Cel_Joao,
+      sitioNewnet,
       bia2Config,
       casaPiscinaConfig,
       vivofibraConfig,

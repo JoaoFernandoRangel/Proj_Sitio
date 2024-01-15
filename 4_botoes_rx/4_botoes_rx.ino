@@ -34,6 +34,13 @@
     .SSID = "VIVOFIBRA-DB00",
     .PASS = "55228E47BB"
   };
+  
+  struct WifiConfig sitioNewnet = {
+    .SSID = "SITIO_NEWNET",
+    .PASS = "coisafacil"
+  };
+
+
 
   struct WifiConfig escritorioConfig = {
     .SSID = "Escritorio",
@@ -42,6 +49,7 @@
 
 // Create an array of WifiConfig structs
   struct WifiConfig wifiVector[] = {
+      sitioNewnet,
       bia2Config,
       casaPiscinaConfig,
       vivofibraConfig,
@@ -168,12 +176,17 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Inicio");
   //declara os pinos de saída
-    pinMode(33, OUTPUT); // Led 4
+    pinMode(33, OUTPUT); // Cooler
     pinMode(26, OUTPUT); // Led 3 
     pinMode(27, OUTPUT); // Led 2
     pinMode(13, OUTPUT); // Led 1
     pinMode(19, OUTPUT); // Led mqtt
     wait(500,2); 
+    // Deixa todos os relés abertos no inicio da operação
+     digitalWrite(33, HIGH);
+     digitalWrite(26, HIGH);
+     digitalWrite(27, HIGH);
+     digitalWrite(13, HIGH);
   mqtt.setCallback(callback); 
   primeiro_post = true;
   // Conecta o Wifi na rede
@@ -194,12 +207,17 @@ void setup() {
  //Inicia NTP para adquirir data e hora
    ntp.begin();
    ntp.setTimeOffset(-10800);//corrige para fuso horário
+  
          
 }
 
 String msg_inicio = "inicio_rx";
-
-
+// Variables
+unsigned long lastToggleTime = 0;
+bool port33State = HIGH;  // Initial state (HIGH or LOW)
+const unsigned long TWO_MINUTES = 2 * 60 * 1000;  // 2 minutes in milliseconds
+const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
+String cooler  = "-Cooler desligado";
 void loop() {
   if (!mqtt.connected()) {
     reconnect();
@@ -210,7 +228,21 @@ void loop() {
     interacao_com_mqtt = millis();
     primeiro_post = false;
   }
-  
+  unsigned long currentTime = millis();
+  if (currentTime - lastToggleTime >= TWO_MINUTES) {
+    lastToggleTime = currentTime;  // Update last toggle time
+
+    // Toggle port 33 state
+    port33State = !port33State;
+    digitalWrite(33, port33State);
+    if (port33State){
+      cooler = "-Cooler desligado";
+    } else {
+      cooler = "-Cooler ligado";
+    }
+    Serial.println("Cooler ligado");
+    
+  }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
   int tempo_fora_do_loop = millis();
@@ -218,7 +250,7 @@ void loop() {
   if (diferenca >= 5000){
   
     String tempo = ntp.getFormattedTime();
-    String idle_ping = rx_ping + para_idle + space + tempo;
+    String idle_ping = rx_ping + para_idle + space + tempo + cooler;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
     Serial.print(idle_ping);
@@ -275,12 +307,12 @@ if (receivedMessage.length() >= 8) {
     digitalWrite(26, LOW);
   } else if (receivedMessage[7] == '0') {
     digitalWrite(26, HIGH);
-  }
+  }/* Removida lógica de controle a partir da mensagem do servidor para controle do cooler
   if (receivedMessage[10] == '1') {
     digitalWrite(33, LOW);
   } else if (receivedMessage[10] == '0') {
     digitalWrite(33, HIGH);
-  }
+  }*/
 } else {
   Serial.println("Received message is too short");
 }
