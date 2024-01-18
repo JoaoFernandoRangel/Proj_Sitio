@@ -156,7 +156,6 @@ void setup() {
     Serial.println("Inicio");
     primeiro_post = true;
   // declara os pinos de saida e entrada
-   //pinMode(34, INPUT_PULLUP); // botao 1
    pinMode(32, INPUT_PULLUP); // botao 1 
    pinMode(33, INPUT_PULLUP); // botao 2
    pinMode(27, INPUT_PULLUP); // botao 3
@@ -214,32 +213,32 @@ void loop() {
   }
 
   
-  //lógica do botao 1
-  if (!digitalRead(32) && toggle1 == false){
-    string_padrao[1] = '1';
-    tempo = ntp.getFormattedTime();
-    string_pub = string_padrao + space + tempo;
-    mqtt.publish("controle", string_pub.c_str());    
-    tempo_de_publi = millis();
-    Serial.print("botao 1 apertado-");
-    Serial.print(string_padrao);
-    Serial.println("-publicado em controle");  
-    digitalWrite(18, HIGH); 
-    delay(200);
-    toggle1 = !toggle1;
-  } else if (!digitalRead(32) && toggle1 == true){
-    string_padrao[1] = '0';
-    tempo = ntp.getFormattedTime();
-    string_pub = string_padrao + space + tempo;
-    mqtt.publish("controle", string_pub.c_str());    
-    tempo_de_publi = millis();
-    Serial.print("botao 1 apertado-");
-    Serial.print(string_padrao);
-    Serial.println("-publicado em controle"); 
-    digitalWrite(18, LOW);   
-    delay(200);
-    toggle1 = !toggle1;     
-  }
+//lógica do botao 1
+    if (!digitalRead(32) && toggle1 == false){
+      string_padrao[1] = '1';
+      tempo = ntp.getFormattedTime();
+      string_pub = string_padrao + space + tempo;
+      mqtt.publish("controle", string_pub.c_str());    
+      tempo_de_publi = millis();
+      Serial.print("botao 1 apertado-");
+      Serial.print(string_padrao);
+      Serial.println("-publicado em controle");  
+      digitalWrite(18, HIGH); 
+      delay(200);
+      toggle1 = !toggle1;
+    } else if (!digitalRead(32) && toggle1 == true){
+      string_padrao[1] = '0';
+      tempo = ntp.getFormattedTime();
+      string_pub = string_padrao + space + tempo;
+      mqtt.publish("controle", string_pub.c_str());    
+      tempo_de_publi = millis();
+      Serial.print("botao 1 apertado-");
+      Serial.print(string_padrao);
+      Serial.println("-publicado em controle"); 
+      digitalWrite(18, LOW);   
+      delay(200);
+      toggle1 = !toggle1;     
+    }
 
   // Lógica do botao 2
   if (!digitalRead(33) && toggle2 == false){
