@@ -94,7 +94,7 @@ client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
 print("Bomba desligada")
 
 # Play a beeping sound for 2 seconds
-play_beep_sound(2000)
+play_beep_sound(3000)
 
 # Speak the message "Bomba desligada"
 speak_message("Bomba desligada")
