@@ -120,7 +120,7 @@ class ContadorRegressivoApp:
             client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
             play_beep_sound(500)
             speak_message("Bomba desligada")
-            self.root.destroy()
+            #self.root.destroy()
     def on_close(self):
         # Handle the window close event
         result = messagebox.askokcancel("Aviso", "Não feche o app até o fim da contagem.")
