@@ -98,7 +98,7 @@ class ContadorRegressivoApp:
         current_time = time.strftime("%H:%M:%S")
         global topico 
         topico = self.topico_var.get()
-        if (topico == "CONTROLE"):
+        if (topico == "CONTROLE"): #Adição para qualidade de vida do usuário
             topico = "controle"
         elif (topico == "bomba"):
             topico = "controle"
