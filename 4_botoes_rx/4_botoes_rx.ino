@@ -243,6 +243,11 @@ void loop() {
     Serial.println("Cooler ligado");
     
   }
+  if (WiFi.status() != WL_CONNECTED) {
+        // Se não estiver conectado, tenta reconectar
+        Serial.println("WiFi connection lost. Reconnecting...");
+        reconnectToWiFi();
+  }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
   int tempo_fora_do_loop = millis();
@@ -331,5 +336,20 @@ void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeti
     delay( int(ciclo/2) );
   }
 }
+void reconnectToWiFi() {
+    // Tenta reconectar-se a uma rede WiFi
+    for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
+        connectToWiFi(wifiVector[ji], 15000); // Timeout definido como 15 segundos (15000 milissegundos)
 
+        // Verifica se está conectado ao WiFi
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("WiFi reconnected successfully.");
+            return; // Sai da função se reconectar com sucesso
+        }
+    }
+
+    // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
+    Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
+    delay(5000);
+}
 
