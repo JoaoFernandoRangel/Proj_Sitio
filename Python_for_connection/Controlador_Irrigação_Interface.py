@@ -98,6 +98,12 @@ class ContadorRegressivoApp:
         current_time = time.strftime("%H:%M:%S")
         global topico 
         topico = self.topico_var.get()
+        if (topico == "CONTROLE"):
+            topico = "controle"
+        elif (topico == "bomba"):
+            topico = "controle"
+        elif (topico == "BOMBA"):
+            topico = "controle"
         minutos = self.minutos_var.get()
         client.publish(topico, f"11%20%30%40-{current_time}", qos=1)
         try:
