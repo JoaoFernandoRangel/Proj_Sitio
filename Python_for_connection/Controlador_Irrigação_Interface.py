@@ -1,3 +1,11 @@
+#trocar inserção do tópico por um menu dropdown
+#adicionar tempos fixos de 10,20,30 e um livre
+#ligar apenas o comanda 10 adicionar luz de retorno para os outros comandos.
+
+
+
+
+
 import tkinter as tk
 from tkinter import messagebox
 import winsound
