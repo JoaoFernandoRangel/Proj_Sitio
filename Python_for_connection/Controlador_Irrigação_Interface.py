@@ -1,11 +1,3 @@
-#trocar inserção do tópico por um menu dropdown
-#adicionar tempos fixos de 10,20,30 e um livre
-#ligar apenas o comanda 10 adicionar luz de retorno para os outros comandos.
-
-
-
-
-
 import tkinter as tk
 from tkinter import messagebox
 import winsound
@@ -15,17 +7,11 @@ from paho import mqtt
 import pyttsx3
 
 circle_color = 'red'  # Default color
-topico = '-'
 current_time = '0'
+
 def on_connect(client, userdata, flags, rc, properties=None):
     # Subscribe to the "idle_rx" topic when connected
     client.subscribe("idle_rx", qos=1)
-
-def on_publish(client, userdata, mid, properties=None):
-    print("publicado")
-
-def on_subscribe(client, userdata, mid, granted_qos, properties=None):
-    print("Subscrito")
 
 def on_message(client, userdata, msg):
     mensagem = msg.payload.decode()
@@ -63,7 +49,7 @@ class ContadorRegressivoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Controlador de Irrigação Jacaré")
-        self.root.geometry("800x400")  # Definindo a largura e altura inicial da janela
+        self.root.geometry("660x530")  # Definindo largura x altura
         self.root.configure(bg='black')  # Set background color to black
 
         self.topico_var = tk.StringVar()
@@ -78,40 +64,46 @@ class ContadorRegressivoApp:
         # Increase font size
         font_style = ("Helvetica", 20)
 
-        tk.Label(root, text="Tópico:", bg=label_bg, fg=label_fg, font=font_style).grid(row=0, column=0, padx=10, pady=10)
-        tk.Entry(root, textvariable=self.topico_var, bg=entry_bg, fg=entry_fg, font=font_style).grid(row=0, column=1, padx=10, pady=10)
+        tk.Label(root, text="Tempo em Minutos:", bg=label_bg, fg=label_fg, font=font_style).grid(row=0, column=0, padx=10, pady=10)
+        tk.Label(root, textvariable=self.minutos_var, bg=entry_bg, fg=entry_fg, font=font_style).grid(row=0, column=1, padx=10, pady=10)
 
-        tk.Label(root, text="Tempo em Minutos:", bg=label_bg, fg=label_fg, font=font_style).grid(row=1, column=0, padx=10, pady=10)
-        tk.Entry(root, textvariable=self.minutos_var, bg=entry_bg, fg=entry_fg, font=font_style).grid(row=1, column=1, padx=10, pady=10)
+        # Dropdown menu for selecting topic
+        tk.Label(root, text="Escolha o Tópico:", bg=label_bg, fg=label_fg, font=font_style).grid(row=1, column=0, padx=10, pady=10)
+        self.topic_options = ['controle', 'teste']
+        self.topic_var = tk.StringVar(root)
+        self.topic_var.set(self.topic_options[0])  # Set default value
+        self.topic_dropdown = tk.OptionMenu(root, self.topic_var, *self.topic_options)
+        self.topic_dropdown.config(bg=entry_bg, fg=entry_fg, font=font_style)
+        self.topic_dropdown.grid(row=1, column=1, padx=10, pady=10)
 
-        tk.Button(root, text="Ligar a bomba", command=self.iniciar_contagem, bg=label_bg, fg=label_fg, font=font_style).grid(row=2, column=0, columnspan=2, pady=10)
+        tk.Button(root, text="Ligar a bomba", command=self.iniciar_contagem, bg=label_bg, fg=label_fg, font=font_style).grid(row=2, column=0, pady=10, padx=10)
+
+        # Add three buttons for 10min, 20min, and 30min
+        tk.Button(root, text="1min", command=lambda: self.set_time(1), bg=label_bg, fg=label_fg, font=font_style).grid(row=2, column=1, pady=10, padx=10)
+        tk.Button(root, text="5min", command=lambda: self.set_time(5), bg=label_bg, fg=label_fg, font=font_style).grid(row=2, column=2, pady=10, padx=10)
+        tk.Button(root, text="10min", command=lambda: self.set_time(10), bg=label_bg, fg=label_fg, font=font_style).grid(row=2, column=3, pady=10, padx=10)
+        tk.Button(root, text="20min", command=lambda: self.set_time(20), bg=label_bg, fg=label_fg, font=font_style).grid(row=3, column=2, pady=10, padx=10)
+        tk.Button(root, text="30min", command=lambda: self.set_time(30), bg=label_bg, fg=label_fg, font=font_style).grid(row=3, column=3, pady=10, padx=10)
 
         # Create a Canvas widget to draw the red circle
         self.canvas = tk.Canvas(root, width=100, height=100, bg='black', highlightthickness=0)
-        self.canvas.grid(row=2, column=2, columnspan=2, pady=10)
-        
+        self.canvas.grid(row=3, column=0, columnspan=4, pady=10)
+
         self.message_box = tk.Text(root, wrap=tk.WORD, height=5, width=55, font=("Helvetica", 14), bg='black', fg='white')
-        self.message_box.grid(row=3, column=0, columnspan=4, padx=10, pady=10)
+        self.message_box.grid(row=4, column=0, columnspan=4, padx=10, pady=10)
 
         # Draw a red circle on the Canvas
         self.circle = self.canvas.create_oval(0, 0, 100, 100, fill=circle_color)
 
         self.display = tk.Label(root, text="", font=("Helvetica", 30), bg='black', fg='white')  # Increase font size for the display
-        self.display.grid(row=2, column=1, columnspan=2, pady=10)
+        self.display.grid(row=5, column=0, columnspan=4, pady=10)
         # Bind the window close event to a custom function
         root.protocol("WM_DELETE_WINDOW", self.on_close)
         
     def iniciar_contagem(self):
         global current_time
         current_time = time.strftime("%H:%M:%S")
-        global topico 
-        topico = self.topico_var.get()
-        if (topico == "CONTROLE"): #Adição para qualidade de vida do usuário
-            topico = "controle"
-        elif (topico == "bomba"):
-            topico = "controle"
-        elif (topico == "BOMBA"):
-            topico = "controle"
+        topico = self.topic_var.get()
         minutos = self.minutos_var.get()
         client.publish(topico, f"11%20%30%40-{current_time}", qos=1)
         try:
@@ -120,6 +112,9 @@ class ContadorRegressivoApp:
             self.contagem_regressiva(segundos)
         except ValueError:
             messagebox.showerror("Erro", "Por favor, insira um número válido para os minutos.")
+
+    def set_time(self, minutes):
+        self.minutos_var.set(str(minutes))
 
     def atualizar_display(self, segundos):
         minutos, segundos = divmod(segundos, 60)
@@ -131,6 +126,7 @@ class ContadorRegressivoApp:
             self.root.after(1000, lambda: self.contagem_regressiva(segundos - 1))
         else:
             current_time = time.strftime("%H:%M:%S")
+            topico = self.topic_var.get()
             client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
             play_beep_sound(500)
             speak_message("Bomba desligada")
@@ -140,8 +136,10 @@ class ContadorRegressivoApp:
         result = messagebox.askokcancel("Aviso", "Não feche o app até o fim da contagem.")
         if result:
             # Perform cleanup or other actions before exiting (if needed)
+            topico = self.topic_var.get()
             client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
             self.root.destroy()
+
 # Cria a janela principal com uma largura e altura maiores
 root = tk.Tk()
 app = ContadorRegressivoApp(root)
