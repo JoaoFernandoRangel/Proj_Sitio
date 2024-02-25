@@ -243,11 +243,6 @@ void loop() {
     Serial.println("Cooler ligado");
     
   }
-  if (WiFi.status() != WL_CONNECTED) {
-        // Se não estiver conectado, tenta reconectar
-        Serial.println("WiFi connection lost. Reconnecting...");
-        reconnectToWiFi();
-  }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
   int tempo_fora_do_loop = millis();
