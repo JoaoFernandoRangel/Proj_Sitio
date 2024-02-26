@@ -220,6 +220,7 @@ const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
 String cooler  = "-Cooler desligado";
 void loop() {
   if (!mqtt.connected()) {
+    deu_ruim();
     reconnect();
   }
   if (primeiro_post == true){
@@ -348,3 +349,10 @@ void reconnectToWiFi() {
     delay(5000);
 }
 
+void deu_ruim(){
+  digitalWrite(33, LOW); // Cooler
+  digitalWrite(26, LOW); // Led 3 
+  digitalWrite(27, LOW); // Led 2
+  digitalWrite(13, LOW); // Led 1
+  digitalWrite(19, LOW); // Led mqtt
+}
