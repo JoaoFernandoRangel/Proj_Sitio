@@ -121,16 +121,19 @@ class ContadorRegressivoApp:
         self.display["text"] = f"{minutos:02d}:{segundos:02d}"
 
     def contagem_regressiva(self, segundos):
-        if segundos > 0:
-            self.atualizar_display(segundos)
-            self.root.after(1000, lambda: self.contagem_regressiva(segundos - 1))
-        else:
-            current_time = time.strftime("%H:%M:%S")
-            topico = self.topic_var.get()
-            client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
-            play_beep_sound(500)
-            speak_message("Bomba desligada")
-            #self.root.destroy()
+      if segundos > 0:
+          self.atualizar_display(segundos)
+          self.root.after(1000, lambda: self.contagem_regressiva(segundos - 1))
+      elif segundos == 0:
+          self.atualizar_display(segundos)
+          current_time = time.strftime("%H:%M:%S")
+          topico = self.topic_var.get()
+          client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
+          play_beep_sound(500)
+          speak_message("Bomba desligada")
+          # Clear the display or perform any other desired action
+          self.display["text"] = ""  # Clear the display text
+
     def on_close(self):
         # Handle the window close event
         result = messagebox.askokcancel("Aviso", "Não feche o app até o fim da contagem.")
