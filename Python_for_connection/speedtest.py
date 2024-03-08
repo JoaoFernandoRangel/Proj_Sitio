@@ -1,8 +1,5 @@
-import speedtest
+import time
+import datetime
+from datetime import datetime
+import winsound
 
-wifi = speedtest.Speedtest() # Adjust the constructor call accordingly
-
-print("Getting download speed...")
-download = wifi.download()
-
-print(download)
