@@ -13,7 +13,7 @@ def on_connect(client, userdata, flags, rc, properties=None):
     # Subscribe to the "idle_rx" topic when connected
     client.subscribe("idle_rx", qos=1)
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg): 
     mensagem = msg.payload.decode()
     global circle_color
     if mensagem[9] == '1':

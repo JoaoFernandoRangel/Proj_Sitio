@@ -7,7 +7,7 @@
 #include "PubSubClient.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-
+#include "DHT.h"
 // Define a struct to hold WiFi configuration
   struct WifiConfig {
       const char* SSID;
@@ -40,8 +40,6 @@
     .PASS = "coisafacil"
   };
 
-
-
   struct WifiConfig escritorioConfig = {
     .SSID = "Escritorio",
     .PASS = "cs2017cs3337"
@@ -49,7 +47,7 @@
 
 // Create an array of WifiConfig structs
   struct WifiConfig wifiVector[] = {
-      sitioNewnet,
+      //sitioNewnet,
       bia2Config,
       casaPiscinaConfig,
       vivofibraConfig,
@@ -90,6 +88,12 @@ WiFiClientSecure client;
 //Cria uma instância para medição de tempo
 WiFiUDP ntpUDP;
 NTPClient ntp(ntpUDP);
+
+// Declarações para sensor DHT11
+#define DHTPIN 4
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
 
 //Define informacoes MQTT
 #define SERVER      "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
@@ -175,12 +179,14 @@ void setup() {
   //Iniciando  
   Serial.begin(9600);
   Serial.println("Inicio");
+  
   //declara os pinos de saída
     pinMode(33, OUTPUT); // Cooler
     pinMode(26, OUTPUT); // Led 3 
     pinMode(27, OUTPUT); // Led 2
     pinMode(13, OUTPUT); // Led 1
     pinMode(19, OUTPUT); // Led mqtt
+    //pinMode(, OUTPUT); // Led mqtt
     wait(500,2); 
     // Deixa todos os relés abertos no inicio da operação
      digitalWrite(33, HIGH);
@@ -213,12 +219,19 @@ void setup() {
 
 String msg_inicio = "inicio_rx";
 // Variables
-unsigned long lastToggleTime = 0;
+unsigned long lastToggleTime = 0, inicio;
 bool port33State = HIGH;  // Initial state (HIGH or LOW)
 const unsigned long TWO_MINUTES = 2 * 60 * 1000;  // 2 minutes in milliseconds
 const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
+const unsigned long VINTE_QUATRO_HORAS = 24*60*60*1000; // 12 HORAS
+const unsigned long HORA = 60*60*1000; // 1 HORA
 String cooler  = "-Cooler desligado";
 void loop() {
+  inicio = millis();
+  //Serial.println(inicio);
+  if (inicio >= /*TWO_MINUTES*2.5*/0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
+    ESP.restart();
+  }
   if (!mqtt.connected()) {
     deu_ruim();
     reconnect();
@@ -251,7 +264,7 @@ void loop() {
   if (diferenca >= 5000){
   
     String tempo = ntp.getFormattedTime();
-    String idle_ping = rx_ping + para_idle + space + tempo + cooler;
+    String idle_ping = rx_ping + para_idle + space + tempo + cooler + dht_String;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
     Serial.print(idle_ping);
