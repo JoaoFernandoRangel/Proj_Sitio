@@ -45,14 +45,21 @@
     .PASS = "cs2017cs3337"
   };
 
+ struct WifiConfig rede_celular = {
+   .SSID = "REDE",
+   .PASS = "12345678" 
+ };
+
 // Create an array of WifiConfig structs
   struct WifiConfig wifiVector[] = {
       //sitioNewnet,
+      rede_celular,
       bia2Config,
       casaPiscinaConfig,
       vivofibraConfig,
       casaLuConfig,
       escritorioConfig
+      
   };
 void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis) {
     Serial.println();
@@ -103,6 +110,8 @@ DHT dht(DHTPIN, DHTTYPE);
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
+int contador = 0;
+
 // prototipos de funcao
   void reconnect();
   unsigned long millisZero();
@@ -213,11 +222,13 @@ void setup() {
  //Inicia NTP para adquirir data e hora
    ntp.begin();
    ntp.setTimeOffset(-10800);//corrige para fuso horário
-  
+  // Inicia o sensor de temperatura
+   dht.begin();
          
 }
 
 String msg_inicio = "inicio_rx";
+
 // Variables
 unsigned long lastToggleTime = 0, inicio;
 bool port33State = HIGH;  // Initial state (HIGH or LOW)
@@ -225,13 +236,19 @@ const unsigned long TWO_MINUTES = 2 * 60 * 1000;  // 2 minutes in milliseconds
 const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
 const unsigned long VINTE_QUATRO_HORAS = 24*60*60*1000; // 12 HORAS
 const unsigned long HORA = 60*60*1000; // 1 HORA
-String cooler  = "-Cooler desligado";
+String cooler  = "-Cooler desligado", dht_String = "---";
+float t;
 void loop() {
-  inicio = millis();
-  //Serial.println(inicio);
-  if (inicio >= /*TWO_MINUTES*2.5*/0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
+  inicio = millis();/*
+  Serial.println(inicio);
+  if (inicio >= 0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
     ESP.restart();
+  }*/
+  if (contador == 15){
+    ESP.restart();
+
   }
+  
   if (!mqtt.connected()) {
     deu_ruim();
     reconnect();
@@ -264,6 +281,10 @@ void loop() {
   if (diferenca >= 5000){
   
     String tempo = ntp.getFormattedTime();
+    // Le a temperatura a cada 5 segundos
+    t = dht.readTemperature();
+    dht_String = String(t,1);
+
     String idle_ping = rx_ping + para_idle + space + tempo + cooler + dht_String;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
@@ -278,7 +299,6 @@ void loop() {
 }
 
 
-
 void reconnect() {
   //Rotina de conexao
   while (!mqtt.connected()) {
@@ -289,6 +309,7 @@ void reconnect() {
 
     if (mqtt.connect(clientId.c_str(), user, pass)) {
       Serial.println("conectado");
+      contador = 0;
 
       mqtt.subscribe("controle", 0);   // inscricao no topico 'controle'
     } else {
@@ -296,53 +317,54 @@ void reconnect() {
       Serial.print(mqtt.state());
       Serial.println(" tentando novamente em 5 segundos");
       wait(1000,5);
+      contador++;
     }
   }
   digitalWrite(19, HIGH);
 }
 
 void handleMessage(String receivedMessage){
-Serial.println(receivedMessage);
-// Check if the received message is long enough
-if (receivedMessage.length() >= 8) {
-  if (receivedMessage[1] == '1') {
-    digitalWrite(13, LOW);
-  } else if (receivedMessage[1] == '0') {
-    digitalWrite(13, HIGH);
+  Serial.println(receivedMessage);
+  // Check if the received message is long enough
+  if (receivedMessage.length() >= 8) {
+    if (receivedMessage[1] == '1') {
+      digitalWrite(13, LOW);
+    } else if (receivedMessage[1] == '0') {
+      digitalWrite(13, HIGH);
+    }
+
+    if (receivedMessage[4] == '1') {
+      digitalWrite(27, LOW);
+    } else if (receivedMessage[4] == '0') {
+      digitalWrite(27, HIGH);
+    }
+
+    if (receivedMessage[7] == '1') {
+      digitalWrite(26, LOW);
+    } else if (receivedMessage[7] == '0') {
+      digitalWrite(26, HIGH);
+    }/* Removida lógica de controle a partir da mensagem do servidor para controle do cooler
+    if (receivedMessage[10] == '1') {
+      digitalWrite(33, LOW);
+    } else if (receivedMessage[10] == '0') {
+      digitalWrite(33, HIGH);
+    }*/
+  } else {
+    Serial.println("Received message is too short");
   }
 
-  if (receivedMessage[4] == '1') {
-    digitalWrite(27, LOW);
-  } else if (receivedMessage[4] == '0') {
-    digitalWrite(27, HIGH);
+  Serial.print("Received Message: ");
+  Serial.println(receivedMessage);
   }
 
-  if (receivedMessage[7] == '1') {
-    digitalWrite(26, LOW);
-  } else if (receivedMessage[7] == '0') {
-    digitalWrite(26, HIGH);
-  }/* Removida lógica de controle a partir da mensagem do servidor para controle do cooler
-  if (receivedMessage[10] == '1') {
-    digitalWrite(33, LOW);
-  } else if (receivedMessage[10] == '0') {
-    digitalWrite(33, HIGH);
-  }*/
-} else {
-  Serial.println("Received message is too short");
-}
-
-Serial.print("Received Message: ");
-Serial.println(receivedMessage);
-}
-
-void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
-{  
-  for(int i = 0; i < num; i++)
-  {
-    //digitalWrite(LED, HIGH);
-    delay( int(ciclo/2) );
-    //digitalWrite(LED, LOW);
-    delay( int(ciclo/2) );
+  void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
+  {  
+    for(int i = 0; i < num; i++)
+    {
+      //digitalWrite(LED, HIGH);
+      delay( int(ciclo/2) );
+      //digitalWrite(LED, LOW);
+      delay( int(ciclo/2) );
   }
 }
 void reconnectToWiFi() {
@@ -363,9 +385,9 @@ void reconnectToWiFi() {
 }
 
 void deu_ruim(){
-  digitalWrite(33, LOW); // Cooler
-  digitalWrite(26, LOW); // Led 3 
-  digitalWrite(27, LOW); // Led 2
-  digitalWrite(13, LOW); // Led 1
+  digitalWrite(33, HIGH); // Cooler
+  digitalWrite(26, HIGH); // Led 3 
+  digitalWrite(27, HIGH); // Led 2
+  digitalWrite(13, HIGH); // Led 1
   digitalWrite(19, LOW); // Led mqtt
 }
