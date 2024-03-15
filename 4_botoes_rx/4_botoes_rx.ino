@@ -87,9 +87,6 @@ void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis)
     }
 }
 
-
-
-
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
 //Cria uma instância para medição de tempo
@@ -97,9 +94,9 @@ WiFiUDP ntpUDP;
 NTPClient ntp(ntpUDP);
 
 // Declarações para sensor DHT11
-#define DHTPIN 4
+#define DHTPIN 18
 #define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHTPIN, DHTTYPE);  
 
 
 //Define informacoes MQTT
@@ -159,6 +156,7 @@ mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
+
 int interacao_com_mqtt;
 String para_idle = "00000000000";
 String space = "-";
@@ -244,14 +242,9 @@ void loop() {
   if (inicio >= 0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
     ESP.restart();
   }*/
-  if (contador == 15){
-    ESP.restart();
-
-  }
-  
-  if (!mqtt.connected()) {
+   if (!mqtt.connected()) {
     deu_ruim();
-    reconnect();
+    reconnect(); // restart da placa dentro da função reconnect
   }
   if (primeiro_post == true){
     mqtt.publish("idle_rx", msg_inicio.c_str());
@@ -285,7 +278,7 @@ void loop() {
     t = dht.readTemperature();
     dht_String = String(t,1);
 
-    String idle_ping = rx_ping + para_idle + space + tempo + cooler + dht_String;
+    String idle_ping = rx_ping + para_idle + space + tempo + cooler + space + dht_String;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
     Serial.print(idle_ping);
@@ -318,6 +311,10 @@ void reconnect() {
       Serial.println(" tentando novamente em 5 segundos");
       wait(1000,5);
       contador++;
+      Serial.println(contador);
+    }
+    if (contador == 15){
+      ESP.restart();
     }
   }
   digitalWrite(19, HIGH);
