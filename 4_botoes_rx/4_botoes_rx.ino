@@ -164,16 +164,14 @@ String rx_ping = "RX-ping-";
 void callback(char* controle, byte* payload, unsigned int length = 21) {
   Serial.print("Message received on topic: ");
   Serial.println(controle);
-  interacao_com_mqtt = millis();
-
- 
+  interacao_com_mqtt = millis(); 
   String receivedMessage = "";
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
-  }
+  }/*
   Serial.print("Print dentro de callback: ");
   Serial.print(receivedMessage);
-  Serial.println("------");
+  Serial.println("------");*/
   for (int ii  = 0; ii< 11; ii++){//loop para pegar somente a parte dos comandos da string
     para_idle[ii] = receivedMessage[ii];
   }
@@ -235,58 +233,7 @@ const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
 const unsigned long VINTE_QUATRO_HORAS = 24*60*60*1000; // 12 HORAS
 const unsigned long HORA = 60*60*1000; // 1 HORA
 String cooler  = "-Cooler desligado", dht_String = "---";
-float t, temperatura = 50;// mude o valor da temperatura para alterar o setpoint para ligar o cooler
-void loop() {
-  inicio = millis();/*
-  Serial.println(inicio);
-  if (inicio >= 0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
-    ESP.restart();
-  }*/
-   if (!mqtt.connected()) {
-    deu_ruim();
-    reconnect(); // restart da placa dentro da função reconnect
-  }
-  if (primeiro_post == true){
-    mqtt.publish("idle_rx", msg_inicio.c_str());
-    Serial.println(msg_inicio);
-    interacao_com_mqtt = millis();
-    primeiro_post = false;
-  }
-  t = dht.readTemperature();
-  // Acionamento de cooler a partir do input da temperatura
-  if (t >= temperatura){
-    digitalWrite(33, LOW);
-    cooler = "-Cooler ligado";
-  }else{
-    digitalWrite(33,HIGH);
-    cooler = "-Cooler desliga do";
-  }
-
-   
-  // Poll the MQTT client to check for incoming messages
-  mqtt.loop();
-  int tempo_fora_do_loop = millis();
-  int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
-  if (diferenca >= 5000){
-  
-    String tempo = ntp.getFormattedTime();
-    // Le a temperatura a cada 5 segundos
-    
-    dht_String = String(t,1);
-
-    String idle_ping = rx_ping + para_idle + space + tempo + cooler + space + dht_String;
-    mqtt.publish("idle_rx", idle_ping.c_str());
-    Serial.print("Publicado ");
-    Serial.print(idle_ping);
-    Serial.println(" no tópico idle_rx.");
-    diferenca = 0;
-    interacao_com_mqtt = millis();
-  }
-  // Add any other logic or delay if needed
-  ntp.update();
-  delay(1000);  // Adjust the delay according to your needs
-}
-
+float t, setpoint = 50;// mude o valor da temperatura para alterar o setpoint para ligar o cooler
 
 void reconnect() {
   //Rotina de conexao
@@ -318,6 +265,18 @@ void reconnect() {
 
 void handleMessage(String receivedMessage){
   Serial.println(receivedMessage);
+  // Check if the received message contains "Temperatura="
+  if ((receivedMessage.indexOf("Temperatura=") != -1) || (receivedMessage.indexOf("Temperatura =") != -1)) {
+  // Se a mensagem contém "Temperatura=", imprime no serial monitor
+    //Serial.println("Received message contains 'Temperatura='");
+    int startIndex = receivedMessage.indexOf('=') + 1; // Encontra o índice do '='
+    String temperatura = receivedMessage.substring(startIndex); // Extrai a parte da string após o '='
+    temperatura.trim(); // Remove espaços em branco extras
+    setpoint = temperatura.toFloat();
+    Serial.println(setpoint);
+    //Serial.println(receivedMessage);
+  }
+  else {
   // Check if the received message is long enough
   if (receivedMessage.length() >= 8) {
     if (receivedMessage[1] == '1') {
@@ -325,23 +284,23 @@ void handleMessage(String receivedMessage){
     } else if (receivedMessage[1] == '0') {
       digitalWrite(13, HIGH);
     }
-
     if (receivedMessage[4] == '1') {
       digitalWrite(27, LOW);
     } else if (receivedMessage[4] == '0') {
       digitalWrite(27, HIGH);
     }
-
     if (receivedMessage[7] == '1') {
       digitalWrite(26, LOW);
     } else if (receivedMessage[7] == '0') {
       digitalWrite(26, HIGH);
-    }/* Removida lógica de controle a partir da mensagem do servidor para controle do cooler
+    } //Removida lógica de controle a partir da mensagem do servidor para controle do cooler
     if (receivedMessage[10] == '1') {
       digitalWrite(33, LOW);
     } else if (receivedMessage[10] == '0') {
       digitalWrite(33, HIGH);
-    }*/
+    }
+    para_idle = receivedMessage.substring(0, receivedMessage.indexOf('-'));
+
   } else {
     Serial.println("Received message is too short");
   }
@@ -349,9 +308,10 @@ void handleMessage(String receivedMessage){
   Serial.print("Received Message: ");
   Serial.println(receivedMessage);
   }
+}
 
-  void wait(int ciclo, int num) //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
-  {  
+void wait(int ciclo, int num)//ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
+{  
     for(int i = 0; i < num; i++)
     {
       //digitalWrite(LED, HIGH);
@@ -360,7 +320,8 @@ void handleMessage(String receivedMessage){
       delay( int(ciclo/2) );
   }
 }
-void reconnectToWiFi() {
+
+void reconnectToWiFi(){
     // Tenta reconectar-se a uma rede WiFi
     for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
         connectToWiFi(wifiVector[ji], 15000); // Timeout definido como 15 segundos (15000 milissegundos)
@@ -384,3 +345,52 @@ void deu_ruim(){
   digitalWrite(13, HIGH); // Led 1
   digitalWrite(19, LOW); // Led mqtt
 }
+
+void loop(){
+  inicio = millis();/*
+  Serial.println(inicio);
+  if (inicio >= 0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
+    ESP.restart();
+  }*/
+   if (!mqtt.connected()) {
+    deu_ruim();
+    reconnect(); // restart da placa dentro da função reconnect
+  }
+  if (primeiro_post == true){
+    mqtt.publish("idle_rx", msg_inicio.c_str());
+    Serial.println(msg_inicio);
+    interacao_com_mqtt = millis();
+    primeiro_post = false;
+  }
+
+  t = dht.readTemperature();
+  // Acionamento de cooler a partir do input da temperatura. Setpoint vem do servidor MQTT
+  if (t >= setpoint){
+    digitalWrite(33, LOW);
+    cooler = "-Cooler ligado";
+  }else{
+    digitalWrite(33,HIGH);
+    cooler = "-Cooler desligado";
+  }
+  // Poll the MQTT client to check for incoming messages
+  mqtt.loop();
+  int tempo_fora_do_loop = millis();
+  int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
+  if (diferenca >= 5000){  
+    String tempo = ntp.getFormattedTime();
+    // Le a temperatura a cada 5 segundos    
+    dht_String = String(t,1);
+    String idle_ping = rx_ping + para_idle + space + tempo + cooler + space + dht_String;
+    mqtt.publish("idle_rx", idle_ping.c_str());
+    Serial.print("Publicado ");
+    Serial.print(idle_ping);
+    Serial.println(" no tópico idle_rx.");
+    diferenca = 0;
+    interacao_com_mqtt = millis();
+  }
+  // Add any other logic or delay if needed
+  ntp.update();
+  delay(1000);  // Adjust the delay according to your needs
+}
+
+
