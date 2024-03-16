@@ -52,9 +52,9 @@
 
 // Create an array of WifiConfig structs
   struct WifiConfig wifiVector[] = {
-      //sitioNewnet,
-      rede_celular,
       bia2Config,
+      sitioNewnet,
+      rede_celular,
       casaPiscinaConfig,
       vivofibraConfig,
       casaLuConfig,
@@ -235,7 +235,7 @@ const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
 const unsigned long VINTE_QUATRO_HORAS = 24*60*60*1000; // 12 HORAS
 const unsigned long HORA = 60*60*1000; // 1 HORA
 String cooler  = "-Cooler desligado", dht_String = "---";
-float t;
+float t, temperatura = 50;// mude o valor da temperatura para alterar o setpoint para ligar o cooler
 void loop() {
   inicio = millis();/*
   Serial.println(inicio);
@@ -252,21 +252,17 @@ void loop() {
     interacao_com_mqtt = millis();
     primeiro_post = false;
   }
-  unsigned long currentTime = millis();
-  if (currentTime - lastToggleTime >= TWO_MINUTES) {
-    lastToggleTime = currentTime;  // Update last toggle time
-
-    // Toggle port 33 state
-    port33State = !port33State;
-    digitalWrite(33, port33State);
-    if (port33State){
-      cooler = "-Cooler desligado";
-    } else {
-      cooler = "-Cooler ligado";
-    }
-    Serial.println("Cooler ligado");
-    
+  t = dht.readTemperature();
+  // Acionamento de cooler a partir do input da temperatura
+  if (t >= temperatura){
+    digitalWrite(33, LOW);
+    cooler = "-Cooler ligado";
+  }else{
+    digitalWrite(33,HIGH);
+    cooler = "-Cooler desliga do";
   }
+
+   
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
   int tempo_fora_do_loop = millis();
@@ -275,7 +271,7 @@ void loop() {
   
     String tempo = ntp.getFormattedTime();
     // Le a temperatura a cada 5 segundos
-    t = dht.readTemperature();
+    
     dht_String = String(t,1);
 
     String idle_ping = rx_ping + para_idle + space + tempo + cooler + space + dht_String;
