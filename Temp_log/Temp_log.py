@@ -3,7 +3,7 @@ import paho.mqtt.client as paho
 from datetime import datetime
 
 print(sys.executable)
-pc = "jf1"  #altere caso troque de computador
+pc = "jf"  #altere caso troque de computador
 
 if (pc == "jf"):
     diretorio = "C:\\Users\\João Fernando Rangel\\Desktop\\Proj_Sitio\\Temp_log\\"

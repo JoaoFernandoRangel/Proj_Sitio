@@ -171,10 +171,10 @@ void callback(char* controle, byte* payload, unsigned int length = 21) {
   }/*
   Serial.print("Print dentro de callback: ");
   Serial.print(receivedMessage);
-  Serial.println("------");*/
+  Serial.println("------");
   for (int ii  = 0; ii< 11; ii++){//loop para pegar somente a parte dos comandos da string
     para_idle[ii] = receivedMessage[ii];
-  }
+  }*/
  // para_idle = receivedMessage;
   handleMessage(receivedMessage);
 }
@@ -368,9 +368,12 @@ void loop(){
   if (t >= setpoint){
     digitalWrite(33, LOW);
     cooler = "-Cooler ligado";
+    para_idle[10] = '1';
   }else{
     digitalWrite(33,HIGH);
     cooler = "-Cooler desligado";
+    para_idle[10] = '0';
+
   }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
