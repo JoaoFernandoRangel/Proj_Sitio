@@ -1,4 +1,4 @@
-close all
+
 clc
 
 antes_meia = Hora(1:3414);
