@@ -1,0 +1,6 @@
+Teste
+17:36:46+++00000000000+++Cooler desligado+++29.6ºC
+17:36:51+++00000000000+++Cooler desligado+++29.6ºC
+17:36:56+++00000000000+++Cooler desligado+++29.6ºC
+17:37:02+++00000000000+++Cooler desligado+++29.6ºC
+17:37:07+++00000000000+++Cooler desligado+++29.6ºC

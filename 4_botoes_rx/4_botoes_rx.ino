@@ -52,8 +52,8 @@
 
 // Create an array of WifiConfig structs
   struct WifiConfig wifiVector[] = {
-      bia2Config,
       sitioNewnet,
+      bia2Config,
       rede_celular,
       casaPiscinaConfig,
       vivofibraConfig,
@@ -276,7 +276,9 @@ void handleMessage(String receivedMessage){
     Serial.println(setpoint);
     //Serial.println(receivedMessage);
   }
-  else {
+  if (receivedMessage.indexOf("reiniciar") != -1){
+    ESP.restart();
+  }
   // Check if the received message is long enough
   if (receivedMessage.length() >= 8) {
     if (receivedMessage[1] == '1') {
@@ -307,7 +309,7 @@ void handleMessage(String receivedMessage){
 
   Serial.print("Received Message: ");
   Serial.println(receivedMessage);
-  }
+  
 }
 
 void wait(int ciclo, int num)//ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
@@ -391,6 +393,7 @@ void loop(){
     diferenca = 0;
     interacao_com_mqtt = millis();
   }
+
   // Add any other logic or delay if needed
   ntp.update();
   delay(1000);  // Adjust the delay according to your needs
