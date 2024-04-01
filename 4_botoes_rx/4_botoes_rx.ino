@@ -8,6 +8,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include "DHT.h"
+
 // Define a struct to hold WiFi configuration
 struct WifiConfig {
   const char* SSID;
@@ -175,7 +176,7 @@ void callback(char* controle, byte* payload, unsigned int length = 21) {
   for (int ii  = 0; ii< 11; ii++){//loop para pegar somente a parte dos comandos da string
     para_idle[ii] = receivedMessage[ii];
   }*/
-    // para_idle = receivedMessage;
+  // para_idle = receivedMessage;
   handleMessage(receivedMessage);
 }
 bool primeiro_post;
