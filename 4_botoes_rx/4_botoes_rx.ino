@@ -9,82 +9,82 @@
 #include <WiFiClientSecure.h>
 #include "DHT.h"
 // Define a struct to hold WiFi configuration
-  struct WifiConfig {
-      const char* SSID;
-      const char* PASS;
-  };
+struct WifiConfig {
+  const char* SSID;
+  const char* PASS;
+};
 
 // Instantiate instances of the struct for each network
-  struct WifiConfig bia2Config = {
-    .SSID = "Bia 2",
-    .PASS = "coisafacil"
-  };
+struct WifiConfig bia2Config = {
+  .SSID = "Bia 2",
+  .PASS = "coisafacil"
+};
 
-  struct WifiConfig casaPiscinaConfig = {
-    .SSID = "CS_TELECOM_CS96",
-    .PASS = "cs2017cs3337"
-  };
+struct WifiConfig casaPiscinaConfig = {
+  .SSID = "CS_TELECOM_CS96",
+  .PASS = "cs2017cs3337"
+};
 
-  struct WifiConfig vivofibraConfig = {
-    .SSID = "VIVOFIBRA-09D8",
-    .PASS = "816329FCDE"
-  };
+struct WifiConfig vivofibraConfig = {
+  .SSID = "VIVOFIBRA-09D8",
+  .PASS = "816329FCDE"
+};
 
-  struct WifiConfig casaLuConfig = {
-    .SSID = "VIVOFIBRA-DB00",
-    .PASS = "55228E47BB"
-  };
-  
-  struct WifiConfig sitioNewnet = {
-    .SSID = "SITIO_NEWNET",
-    .PASS = "coisafacil"
-  };
+struct WifiConfig casaLuConfig = {
+  .SSID = "VIVOFIBRA-DB00",
+  .PASS = "55228E47BB"
+};
 
-  struct WifiConfig escritorioConfig = {
-    .SSID = "Escritorio",
-    .PASS = "cs2017cs3337"
-  };
+struct WifiConfig sitioNewnet = {
+  .SSID = "SITIO_NEWNET",
+  .PASS = "coisafacil"
+};
 
- struct WifiConfig rede_celular = {
-   .SSID = "REDE",
-   .PASS = "12345678" 
- };
+struct WifiConfig escritorioConfig = {
+  .SSID = "Escritorio",
+  .PASS = "cs2017cs3337"
+};
+
+struct WifiConfig rede_celular = {
+  .SSID = "REDE",
+  .PASS = "12345678"
+};
 
 // Create an array of WifiConfig structs
-  struct WifiConfig wifiVector[] = {
-      sitioNewnet,
-      bia2Config,
-      rede_celular,
-      casaPiscinaConfig,
-      vivofibraConfig,
-      casaLuConfig,
-      escritorioConfig
-      
-  };
+struct WifiConfig wifiVector[] = {
+  sitioNewnet,
+  bia2Config,
+  rede_celular,
+  casaPiscinaConfig,
+  vivofibraConfig,
+  casaLuConfig,
+  escritorioConfig
+
+};
 void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis) {
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(config.SSID);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(config.SSID, config.PASS);
+
+  unsigned long startTime = millis();
+
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeoutMillis) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
     Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(config.SSID);
-
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(config.SSID, config.PASS);
-
-    unsigned long startTime = millis();
-
-    while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeoutMillis) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println();
-        Serial.println("WiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-    } else {
-        Serial.println();
-        Serial.println("Failed to connect to WiFi within the timeout. Moving to the next network.");
-    }
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println();
+    Serial.println("Failed to connect to WiFi within the timeout. Moving to the next network.");
+  }
 }
 
 // Cria um WiFiClient class para utilizar no MQTT server.
@@ -96,34 +96,34 @@ NTPClient ntp(ntpUDP);
 // Declarações para sensor DHT11
 #define DHTPIN 18
 #define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);  
+DHT dht(DHTPIN, DHTTYPE);
 
 
 //Define informacoes MQTT
-#define SERVER      "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
-#define SERVERPORT   8883 
-#define user        "RX_Esp32"
-#define pass        "Campos0102"
+#define SERVER "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
+#define SERVERPORT 8883
+#define user "RX_Esp32"
+#define pass "Campos0102"
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
 int contador = 0;
 
 // prototipos de funcao
-  void reconnect();
-  unsigned long millisZero();
-  void wait(int ciclo, int num);
+void reconnect();
+unsigned long millisZero();
+void wait(int ciclo, int num);
 
 //Variaveis
-  int f = 10;                   // valor em hz
-  unsigned long time_ini;       // tempo em ms que comecou o segundo no timestamp
-  unsigned long refTime = 0;    // tempo de inicio do loop
-  bool ativar = true;          // indica se vai rodar a transmissao
+int f = 10;                 // valor em hz
+unsigned long time_ini;     // tempo em ms que comecou o segundo no timestamp
+unsigned long refTime = 0;  // tempo de inicio do loop
+bool ativar = true;         // indica se vai rodar a transmissao
 
 
 
 
-static const char *root_ca PROGMEM = R"EOF(
+static const char* root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
 TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
@@ -164,76 +164,75 @@ String rx_ping = "RX-ping-";
 void callback(char* controle, byte* payload, unsigned int length = 21) {
   Serial.print("Message received on topic: ");
   Serial.println(controle);
-  interacao_com_mqtt = millis(); 
+  interacao_com_mqtt = millis();
   String receivedMessage = "";
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
-  }/*
+  } /*
   Serial.print("Print dentro de callback: ");
   Serial.print(receivedMessage);
   Serial.println("------");
   for (int ii  = 0; ii< 11; ii++){//loop para pegar somente a parte dos comandos da string
     para_idle[ii] = receivedMessage[ii];
   }*/
- // para_idle = receivedMessage;
+    // para_idle = receivedMessage;
   handleMessage(receivedMessage);
 }
 bool primeiro_post;
 
 void setup() {
-  //Iniciando  
+  //Iniciando
   Serial.begin(9600);
   Serial.println("Inicio");
-  
+
   //declara os pinos de saída
-    pinMode(33, OUTPUT); // Cooler
-    pinMode(26, OUTPUT); // Led 3 
-    pinMode(27, OUTPUT); // Led 2
-    pinMode(13, OUTPUT); // Led 1
-    pinMode(19, OUTPUT); // Led mqtt
-    //pinMode(, OUTPUT); // Led mqtt
-    wait(500,2); 
-    // Deixa todos os relés abertos no inicio da operação
-     digitalWrite(33, HIGH);
-     digitalWrite(26, HIGH);
-     digitalWrite(27, HIGH);
-     digitalWrite(13, HIGH);
-  mqtt.setCallback(callback); 
+  pinMode(33, OUTPUT);  // Cooler
+  pinMode(26, OUTPUT);  // Led 3
+  pinMode(27, OUTPUT);  // Led 2
+  pinMode(13, OUTPUT);  // Led 1
+  pinMode(19, OUTPUT);  // Led mqtt
+  //pinMode(, OUTPUT); // Led mqtt
+  wait(500, 2);
+  // Deixa todos os relés abertos no inicio da operação
+  digitalWrite(33, HIGH);
+  digitalWrite(26, HIGH);
+  digitalWrite(27, HIGH);
+  digitalWrite(13, HIGH);
+  mqtt.setCallback(callback);
   primeiro_post = true;
   // Conecta o Wifi na rede
- for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
-        connectToWiFi(wifiVector[ji], 15000); // Timeout set to 15 seconds (15000 milliseconds)
+  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
+    connectToWiFi(wifiVector[ji], 15000);  // Timeout set to 15 seconds (15000 milliseconds)
 
-        // Check if connected to WiFi
-        if (WiFi.status() == WL_CONNECTED) {
-            break; // Exit the loop if connected successfully
-        }
+    // Check if connected to WiFi
+    if (WiFi.status() == WL_CONNECTED) {
+      break;  // Exit the loop if connected successfully
     }
+  }
 
   //Conecta servidor MQTT
-   client.setCACert(root_ca);
-    mqtt.setServer(SERVER, SERVERPORT);
-    reconnect();
+  client.setCACert(root_ca);
+  mqtt.setServer(SERVER, SERVERPORT);
+  reconnect();
 
- //Inicia NTP para adquirir data e hora
-   ntp.begin();
-   ntp.setTimeOffset(-10800);//corrige para fuso horário
-  // Inicia o sensor de temperatura
-   dht.begin();
-         
+  //Inicia NTP para adquirir data e hora
+  ntp.begin();
+  ntp.setTimeOffset(-10800);  //corrige para fuso horário
+                              // Inicia o sensor de temperatura
+  dht.begin();
 }
 
 String msg_inicio = "inicio_rx";
 
 // Variables
 unsigned long lastToggleTime = 0, inicio;
-bool port33State = HIGH;  // Initial state (HIGH or LOW)
-const unsigned long TWO_MINUTES = 2 * 60 * 1000;  // 2 minutes in milliseconds
-const unsigned long THIRTY_SECONDS = 30 * 1000;  // 30 seconds in milliseconds
-const unsigned long VINTE_QUATRO_HORAS = 24*60*60*1000; // 12 HORAS
-const unsigned long HORA = 60*60*1000; // 1 HORA
-String cooler  = "-Cooler desligado", dht_String = "---";
-float t, setpoint = 50;// mude o valor da temperatura para alterar o setpoint para ligar o cooler
+bool port33State = HIGH;                                       // Initial state (HIGH or LOW)
+const unsigned long TWO_MINUTES = 2 * 60 * 1000;               // 2 minutes in milliseconds
+const unsigned long THIRTY_SECONDS = 30 * 1000;                // 30 seconds in milliseconds
+const unsigned long VINTE_QUATRO_HORAS = 24 * 60 * 60 * 1000;  // 12 HORAS
+const unsigned long HORA = 60 * 60 * 1000;                     // 1 HORA
+String cooler = "-Cooler desligado", dht_String = "---";
+float t, setpoint = 50;  // mude o valor da temperatura para alterar o setpoint para ligar o cooler
 
 void reconnect() {
   //Rotina de conexao
@@ -246,37 +245,36 @@ void reconnect() {
     if (mqtt.connect(clientId.c_str(), user, pass)) {
       Serial.println("conectado");
       contador = 0;
-
-      mqtt.subscribe("controle", 0);   // inscricao no topico 'controle'
+      mqtt.subscribe("controle", 0);  // inscricao no topico 'controle'
     } else {
       Serial.print("falha, rc=");
       Serial.print(mqtt.state());
       Serial.println(" tentando novamente em 5 segundos");
-      wait(1000,5);
+      wait(1000, 5);
       contador++;
       Serial.println(contador);
     }
-    if (contador == 15){
+    if (contador == 15) {
       ESP.restart();
     }
   }
   digitalWrite(19, HIGH);
 }
 
-void handleMessage(String receivedMessage){
+void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
   // Check if the received message contains "Temperatura="
   if ((receivedMessage.indexOf("Temperatura=") != -1) || (receivedMessage.indexOf("Temperatura =") != -1)) {
-  // Se a mensagem contém "Temperatura=", imprime no serial monitor
+    // Se a mensagem contém "Temperatura=", imprime no serial monitor
     //Serial.println("Received message contains 'Temperatura='");
-    int startIndex = receivedMessage.indexOf('=') + 1; // Encontra o índice do '='
-    String temperatura = receivedMessage.substring(startIndex); // Extrai a parte da string após o '='
-    temperatura.trim(); // Remove espaços em branco extras
+    int startIndex = receivedMessage.indexOf('=') + 1;           // Encontra o índice do '='
+    String temperatura = receivedMessage.substring(startIndex);  // Extrai a parte da string após o '='
+    temperatura.trim();                                          // Remove espaços em branco extras
     setpoint = temperatura.toFloat();
     Serial.println(setpoint);
     //Serial.println(receivedMessage);
   }
-  if (receivedMessage.indexOf("reiniciar") != -1){
+  if (receivedMessage.indexOf("reiniciar") != -1) {
     ESP.restart();
   }
   // Check if the received message is long enough
@@ -295,7 +293,7 @@ void handleMessage(String receivedMessage){
       digitalWrite(26, LOW);
     } else if (receivedMessage[7] == '0') {
       digitalWrite(26, HIGH);
-    } //Removida lógica de controle a partir da mensagem do servidor para controle do cooler
+    }  //Removida lógica de controle a partir da mensagem do servidor para controle do cooler
     if (receivedMessage[10] == '1') {
       digitalWrite(33, LOW);
     } else if (receivedMessage[10] == '0') {
@@ -309,56 +307,54 @@ void handleMessage(String receivedMessage){
 
   Serial.print("Received Message: ");
   Serial.println(receivedMessage);
-  
 }
 
-void wait(int ciclo, int num)//ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
-{  
-    for(int i = 0; i < num; i++)
-    {
-      //digitalWrite(LED, HIGH);
-      delay( int(ciclo/2) );
-      //digitalWrite(LED, LOW);
-      delay( int(ciclo/2) );
+void wait(int ciclo, int num)  //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
+{
+  for (int i = 0; i < num; i++) {
+    //digitalWrite(LED, HIGH);
+    delay(int(ciclo / 2));
+    //digitalWrite(LED, LOW);
+    delay(int(ciclo / 2));
   }
 }
 
-void reconnectToWiFi(){
-    // Tenta reconectar-se a uma rede WiFi
-    for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
-        connectToWiFi(wifiVector[ji], 15000); // Timeout definido como 15 segundos (15000 milissegundos)
+void reconnectToWiFi() {
+  // Tenta reconectar-se a uma rede WiFi
+  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
+    connectToWiFi(wifiVector[ji], 15000);  // Timeout definido como 15 segundos (15000 milissegundos)
 
-        // Verifica se está conectado ao WiFi
-        if (WiFi.status() == WL_CONNECTED) {
-            Serial.println("WiFi reconnected successfully.");
-            return; // Sai da função se reconectar com sucesso
-        }
+    // Verifica se está conectado ao WiFi
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("WiFi reconnected successfully.");
+      return;  // Sai da função se reconectar com sucesso
     }
+  }
 
-    // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
-    Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
-    delay(5000);
+  // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
+  Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
+  delay(5000);
 }
 
-void deu_ruim(){
-  digitalWrite(33, HIGH); // Cooler
-  digitalWrite(26, HIGH); // Led 3 
-  digitalWrite(27, HIGH); // Led 2
-  digitalWrite(13, HIGH); // Led 1
-  digitalWrite(19, LOW); // Led mqtt
+void deu_ruim() {
+  digitalWrite(33, HIGH);  // Cooler
+  digitalWrite(26, HIGH);  // Led 3
+  digitalWrite(27, HIGH);  // Led 2
+  digitalWrite(13, HIGH);  // Led 1
+  digitalWrite(19, LOW);   // Led mqtt
 }
 
-void loop(){
-  inicio = millis();/*
+void loop() {
+  inicio = millis(); /*
   Serial.println(inicio);
   if (inicio >= 0.5*VINTE_QUATRO_HORAS){ // RESETA A PLACA A CADA 12H
     ESP.restart();
   }*/
-   if (!mqtt.connected()) {
+  if (!mqtt.connected()) {
     deu_ruim();
-    reconnect(); // restart da placa dentro da função reconnect
+    reconnect();  // restart da placa dentro da função reconnect
   }
-  if (primeiro_post == true){
+  if (primeiro_post == true) {
     mqtt.publish("idle_rx", msg_inicio.c_str());
     Serial.println(msg_inicio);
     interacao_com_mqtt = millis();
@@ -367,24 +363,23 @@ void loop(){
 
   t = dht.readTemperature();
   // Acionamento de cooler a partir do input da temperatura. Setpoint vem do servidor MQTT
-  if (t >= setpoint){
+  if (t >= setpoint) {
     digitalWrite(33, LOW);
     cooler = "-Cooler ligado";
     para_idle[10] = '1';
-  }else{
-    digitalWrite(33,HIGH);
+  } else {
+    digitalWrite(33, HIGH);
     cooler = "-Cooler desligado";
     para_idle[10] = '0';
-
   }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
   int tempo_fora_do_loop = millis();
   int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
-  if (diferenca >= 5000){  
+  if (diferenca >= 5000) {
     String tempo = ntp.getFormattedTime();
-    // Le a temperatura a cada 5 segundos    
-    dht_String = String(t,1);
+    // Le a temperatura a cada 5 segundos
+    dht_String = String(t, 1);
     String idle_ping = rx_ping + para_idle + space + tempo + cooler + space + dht_String;
     mqtt.publish("idle_rx", idle_ping.c_str());
     Serial.print("Publicado ");
@@ -398,5 +393,3 @@ void loop(){
   ntp.update();
   delay(1000);  // Adjust the delay according to your needs
 }
-
-
