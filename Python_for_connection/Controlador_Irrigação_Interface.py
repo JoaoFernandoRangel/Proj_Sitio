@@ -137,9 +137,10 @@ class ContadorRegressivoApp:
         global ligar
         ligar = time.time()
         current_time = time.strftime("%H:%M:%S")
+        data = time.strftime("%d-%m-%Y")
         topico = self.topic_var.get()
         minutos = self.minutos_var.get()
-        mensagem_on = "11%20%30%40-" + current_time
+        mensagem_on = "11%20%30%40 -" + current_time + "-" + data.replace("-", "/")
         client.publish(topico, mensagem_on, qos=1)
         registro = open(dir, "a+")
         registro.write("-------------------\n")
@@ -169,9 +170,10 @@ class ContadorRegressivoApp:
           self.atualizar_display(segundos)
           current_time = time.strftime("%H:%M:%S")
           topico = self.topic_var.get()
-          mensagem_off = "10%20%30%40-" + current_time
+          data = time.strftime("%d-%m-%Y")
+          mensagem_off = "10%20%30%40-" + current_time + "-"+ data.replace("-", "/")
           client.publish(topico, mensagem_off, qos=1)
-          desligar = time.time()
+          desligar = time.time()          
           registro = open(dir, "a+")
           registro.write(mensagem_off + "\n")
           registro.write("A bomba foi ligada por: " + faz_conta(ligar, desligar) + " minutos\n")
@@ -194,7 +196,8 @@ class ContadorRegressivoApp:
             desligar = time.time()
             relatorio = faz_conta(ligar, desligar)
             current_time = time.strftime("%H:%M:%S")
-            mensagem_close = "10%20%30%40-" + current_time
+            data = time.strftime("%d-%m-%Y")
+            mensagem_close = "10%20%30%40-" + current_time + "-" + data.replace("-", "/")
             client.publish(topico, mensagem_close, qos=1)
             if (contagem != "1"):
                 registro = open(dir, "a+")
