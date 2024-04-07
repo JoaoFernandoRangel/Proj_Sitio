@@ -5,9 +5,18 @@ import time
 import paho.mqtt.client as paho
 from paho import mqtt
 import pyttsx3
+import pathlib
+
+
+
+direc = pathlib.Path().resolve()
+dir = str(direc) + "\Registro.txt"
+dir2 = str(direc) + "\Relatorio.csv"
 
 circle_color = 'red'  # Default color
 current_time = '0'
+
+#registro = open(dir,"a+")
 
 def on_connect(client, userdata, flags, rc, properties=None):
     # Subscribe to the "idle_rx" topic when connected
@@ -44,8 +53,31 @@ client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
 client.username_pw_set("teste_python", "Campos0102")
 client.connect("25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud", 8883)
 client.loop_start()
+def faz_csv(diretorio1, diretorio2):
+# Abre o arquivo de registro para leitura
+    with open(diretorio1, "r") as registro:
+        # Abre o arquivo de excel para escrita ou criação se não existir
+        with open(diretorio2, "a") as excel:
+            for linha in registro:
+                # Verifica se a linha não começa com o número 1
+                if not linha.startswith('1'):
+                    # Ignora esta linha e passa para a próxima iteração do loop
+                    continue
+                # Divide a linha pelo hífen
+                partes = linha.strip().split('-')
+                # Verifica se há pelo menos duas partes separadas pelo hífen
+                if len(partes) >= 2:
+                    # Escreve as duas partes separadas por vírgula no arquivo de excel
+                    excel.write(partes[0] + "," + partes[1] + "\n")
+
+def faz_conta(antes, depois):
+        tempo = depois - antes
+        return str(round(tempo/60, 1))
 
 class ContadorRegressivoApp:
+    global contagem
+    contagem = "0"
+
     def __init__(self, root):
         self.root = root
         self.root.title("Controlador de Irrigação Jacaré")
@@ -102,10 +134,18 @@ class ContadorRegressivoApp:
         
     def iniciar_contagem(self):
         global current_time
+        global ligar
+        ligar = time.time()
         current_time = time.strftime("%H:%M:%S")
         topico = self.topic_var.get()
         minutos = self.minutos_var.get()
-        client.publish(topico, f"11%20%30%40-{current_time}", qos=1)
+        mensagem_on = "11%20%30%40-" + current_time
+        client.publish(topico, mensagem_on, qos=1)
+        registro = open(dir, "a+")
+        registro.write("-------------------\n")
+        registro.write(mensagem_on + "\n")
+        registro.close()
+        #registro.close()
         try:
             segundos = int(minutos) * 60
             self.atualizar_display(segundos)
@@ -121,6 +161,7 @@ class ContadorRegressivoApp:
         self.display["text"] = f"{minutos:02d}:{segundos:02d}"
 
     def contagem_regressiva(self, segundos):
+      global desligar
       if segundos > 0:
           self.atualizar_display(segundos)
           self.root.after(1000, lambda: self.contagem_regressiva(segundos - 1))
@@ -128,7 +169,15 @@ class ContadorRegressivoApp:
           self.atualizar_display(segundos)
           current_time = time.strftime("%H:%M:%S")
           topico = self.topic_var.get()
-          client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
+          mensagem_off = "10%20%30%40-" + current_time
+          client.publish(topico, mensagem_off, qos=1)
+          desligar = time.time()
+          registro = open(dir, "a+")
+          registro.write(mensagem_off + "\n")
+          registro.write("A bomba foi ligada por: " + faz_conta(ligar, desligar) + " minutos\n")
+          registro.close()
+          global contagem    
+          contagem = "1"
           play_beep_sound(500)
           speak_message("Bomba desligada")
           # Clear the display or perform any other desired action
@@ -136,11 +185,23 @@ class ContadorRegressivoApp:
 
     def on_close(self):
         # Handle the window close event
+        global desligar
+        global contagem
         result = messagebox.askokcancel("Aviso", "Não feche o app até o fim da contagem.")
         if result:
             # Perform cleanup or other actions before exiting (if needed)
             topico = self.topic_var.get()
-            client.publish(topico, f"10%20%30%40-{current_time}", qos=1)
+            desligar = time.time()
+            relatorio = faz_conta(ligar, desligar)
+            current_time = time.strftime("%H:%M:%S")
+            mensagem_close = "10%20%30%40-" + current_time
+            client.publish(topico, mensagem_close, qos=1)
+            if (contagem != "1"):
+                registro = open(dir, "a+")
+                registro.write(mensagem_close + "\n")
+                registro.write("A bomba foi ligada por: " + relatorio + " minutos\n")
+                registro.close()
+            faz_csv(dir, dir2) 
             self.root.destroy()
 
 # Cria a janela principal com uma largura e altura maiores
