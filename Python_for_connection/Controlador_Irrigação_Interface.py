@@ -73,7 +73,9 @@ def faz_csv(diretorio1, diretorio2):
 def faz_conta(antes, depois):
         tempo = depois - antes
         return str(round(tempo/60, 1))
-
+global ligar, desligar
+ligar = 0
+desligar = 0
 class ContadorRegressivoApp:
     global contagem
     contagem = "0"
