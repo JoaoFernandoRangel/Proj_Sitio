@@ -206,7 +206,7 @@ class ContadorRegressivoApp:
                 registro.write(mensagem_close + "\n")
                 registro.write("A bomba foi ligada por: " + relatorio + " minutos\n")
                 registro.close()
-            faz_csv(dir, dir2) 
+            #faz_csv(dir, dir2) 
             self.root.destroy()
 
 # Cria a janela principal com uma largura e altura maiores

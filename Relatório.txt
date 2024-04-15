@@ -1,0 +1,13 @@
+Tempo total e tempo médio da bomba ligada por dia:
+Tempo total do dia 07/04/2024 : 20.2 minutos
+Tempo médio do dia 07/04/2024 : 20.2 minutos
+Tempo total do dia 08/04/2024 : 20.1 minutos
+Tempo médio do dia 08/04/2024 : 20.1 minutos
+Tempo total do dia 09/04/2024 : 1.0 minutos
+Tempo médio do dia 09/04/2024 : 1.0 minutos
+Tempo total do dia 11/04/2024 : 1.4 minutos
+Tempo médio do dia 11/04/2024 : 1.4 minutos
+Tempo total do dia 12/04/2024 : 20.0 minutos
+Tempo médio do dia 12/04/2024 : 20.0 minutos
+--------------------------------------------------
+Tempo médio geral: 12.6 minutos
