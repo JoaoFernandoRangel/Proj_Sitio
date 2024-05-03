@@ -194,11 +194,13 @@ void setup() {
   pinMode(19, OUTPUT);  // Led mqtt
   //pinMode(, OUTPUT); // Led mqtt
   wait(500, 2);
-  // Deixa todos os relés abertos no inicio da operação
+  // Deixa todos os relés abertos no inicio da operação, somente para régua de relés
+  /*
   digitalWrite(33, HIGH);
   digitalWrite(26, HIGH);
   digitalWrite(27, HIGH);
-  digitalWrite(13, HIGH);
+  digitalWrite(13, HIGH);*/
+  digitalWrite(13, LOW);
   mqtt.setCallback(callback);
   primeiro_post = true;
   // Conecta o Wifi na rede
@@ -281,14 +283,18 @@ void handleMessage(String receivedMessage) {
   // Check if the received message is long enough
   if (receivedMessage.length() >= 8) {
     if (receivedMessage[1] == '1') {
-      digitalWrite(13, LOW);
-    } else if (receivedMessage[1] == '0') {
+      //digitalWrite(13, LOW);
       digitalWrite(13, HIGH);
+    } else if (receivedMessage[1] == '0') {
+      //digitalWrite(13, HIGH);
+      digitalWrite(13, LOW);
     }
     if (receivedMessage[4] == '1') {
-      digitalWrite(27, LOW);
-    } else if (receivedMessage[4] == '0') {
+      //digitalWrite(27, LOW);
       digitalWrite(27, HIGH);
+    } else if (receivedMessage[4] == '0') {
+      //digitalWrite(27, HIGH);
+      digitalWrite(27, LOW);
     }
     if (receivedMessage[7] == '1') {
       digitalWrite(26, LOW);
