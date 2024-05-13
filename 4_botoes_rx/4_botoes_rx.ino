@@ -99,6 +99,12 @@ NTPClient ntp(ntpUDP);
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
+// Declarações das portas da esp32
+#define Rele10 13
+#define Rele20 27
+#define Rele30 26
+#define Rele40 33
+#define LedMqtt 19
 
 //Define informacoes MQTT
 #define SERVER "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
@@ -187,7 +193,7 @@ void muda_hora(int hora_nova) {
 
 void muda_min(int min_nova) {
   minutos_auto = min_nova;
-  String pub_minutos_auto = "O novo intervalo de bomba ligada é " + String(horas_auto) + "minutos";
+  String pub_minutos_auto = "O novo intervalo de bomba ligada é " + String(minutos_auto) + " minutos";
   mqtt.publish("idle_rx", pub_minutos_auto.c_str());
 }
 
@@ -199,36 +205,28 @@ void callback(char* controle, byte* payload, unsigned int length = 21) {
   String receivedMessage = "";
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
-  } /*
-  Serial.print("Print dentro de callback: ");
-  Serial.print(receivedMessage);
-  Serial.println("------");
-  for (int ii  = 0; ii< 11; ii++){//loop para pegar somente a parte dos comandos da string
-    para_idle[ii] = receivedMessage[ii];
-  }*/
-  // para_idle = receivedMessage;
+  }
   handleMessage(receivedMessage);
 }
 
 
-void setup() {
-  //Iniciando
+void setup() {  //Iniciando
   Serial.begin(9600);
   Serial.println("Inicio");
 
   //declara os pinos de saída
-  pinMode(33, OUTPUT);  // Cooler
-  pinMode(26, OUTPUT);  // Led 3
-  pinMode(27, OUTPUT);  // Led 2
-  pinMode(13, OUTPUT);  // Led 1
-  pinMode(19, OUTPUT);  // Led mqtt
+  pinMode(Rele40, OUTPUT);   // Cooler
+  pinMode(Rele30, OUTPUT);   // Led 3
+  pinMode(Rele20, OUTPUT);   // Led 2
+  pinMode(Rele10, OUTPUT);   // Led 1
+  pinMode(LedMqtt, OUTPUT);  // Led mqtt
   //pinMode(, OUTPUT); // Led mqtt
   wait(500, 2);
   // Deixa todos os relés abertos no inicio da operação, somente para régua de relés
-  digitalWrite(33, HIGH);
-  digitalWrite(26, HIGH);
-  digitalWrite(27, HIGH);
-  digitalWrite(13, HIGH);
+  digitalWrite(Rele40, HIGH);
+  digitalWrite(Rele30, HIGH);
+  digitalWrite(Rele20, HIGH);
+  digitalWrite(Rele10, HIGH);
   //digitalWrite(13, LOW);
   mqtt.setCallback(callback);
   primeiro_post = true;
@@ -255,7 +253,7 @@ void setup() {
 void reconnect() {
   //Rotina de conexao
   while (!mqtt.connected()) {
-    digitalWrite(19, LOW);
+    digitalWrite(LedMqtt, LOW);
     Serial.print("Conectando ao broker MQTT...");
     String clientId = "Esp32";
     clientId += String(random(0xffff), HEX);
@@ -276,12 +274,22 @@ void reconnect() {
       ESP.restart();
     }
   }
-  digitalWrite(19, HIGH);
+  digitalWrite(LedMqtt, HIGH);
 }
-
+/*
+Dicionário de comandos para MQTT
+reinicar = reinicia a Esp32
+10%20%30%40- = controle individual de cada GPIO relacionada a régua de relés
+auto-on = Liga operação automática
+auto-off = Desliga operação automática
+auto-hora/Numero de horas = altera valor de intervalo de horas na operação automática
+auto-min/Numero de minutos = altera valor de intervalo de minutos na operação automática
+*/
 void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
+
   // Check if the received message contains "Temperatura="
+  /*
   if ((receivedMessage.indexOf("Temperatura=") != -1) || (receivedMessage.indexOf("Temperatura =") != -1)) {
     // Se a mensagem contém "Temperatura=", imprime no serial monitor
     //Serial.println("Received message contains 'Temperatura='");
@@ -292,41 +300,60 @@ void handleMessage(String receivedMessage) {
     Serial.println(setpoint);
     //Serial.println(receivedMessage);
   }
+  */
+
   if (receivedMessage.indexOf("reiniciar") != -1) {
     ESP.restart();
   }
+  // Código para acionamento remoto do modo de operação automático
   if (receivedMessage.indexOf("auto-on") != -1) {
     auto_enable = HIGH;
     String auto_on = "automático ligado";
-    mqtt.publish("auto", auto_on.c_str());
+    mqtt.publish("idle_rx", auto_on.c_str());
   }
   if (receivedMessage.indexOf("auto-off") != -1) {
     auto_enable = HIGH;
     String auto_off = "automatico desligado";
-    mqtt.publish("auto", auto_off.c_str());
+    mqtt.publish("idle_rx", auto_off.c_str());
+  }
+  // Código para alteração dos intervalos de operação automática
+  if (receivedMessage.indexOf("auto-hora/")) {
+    int startIndex = receivedMessage.indexOf('/') + 1;         // Encontra o índice do '/'
+    String hora_nova = receivedMessage.substring(startIndex);  // Extrai a parte da string após o '/'
+    hora_nova.trim();
+    int hora__nova = int(hora_nova.toFloat());
+    muda_hora(hora__nova);
+  }
+  if (receivedMessage.indexOf("auto-min/")) {
+    int startIndex = receivedMessage.indexOf('/') + 1;           // Encontra o índice do '/'
+    String minuto_novo = receivedMessage.substring(startIndex);  // Extrai a parte da string após o '/'
+    minuto_novo.trim();
+    int minuto__novo = int(minuto_novo.toFloat());
+    muda_hora(minuto__novo);
   }
   // Check if the received message is long enough
   if (receivedMessage.length() >= 8) {
+    //Faz a interpretação da mensagem e aciona as portas corretas
     if (receivedMessage[1] == '1') {
-      digitalWrite(13, LOW);
+      digitalWrite(Rele10, LOW);
     } else if (receivedMessage[1] == '0') {
-      digitalWrite(13, HIGH);
+      digitalWrite(Rele10, HIGH);
     }
     if (receivedMessage[4] == '1') {
-      digitalWrite(27, LOW);
+      digitalWrite(Rele20, LOW);
 
     } else if (receivedMessage[4] == '0') {
-      digitalWrite(27, HIGH);
+      digitalWrite(Rele20, HIGH);
     }
     if (receivedMessage[7] == '1') {
-      digitalWrite(26, LOW);
+      digitalWrite(Rele30, LOW);
     } else if (receivedMessage[7] == '0') {
-      digitalWrite(26, HIGH);
+      digitalWrite(Rele30, HIGH);
     }  //Removida lógica de controle a partir da mensagem do servidor para controle do cooler
     if (receivedMessage[10] == '1') {
-      digitalWrite(33, LOW);
+      digitalWrite(Rele40, LOW);
     } else if (receivedMessage[10] == '0') {
-      digitalWrite(33, HIGH);
+      digitalWrite(Rele40, HIGH);
     }
     para_idle = receivedMessage.substring(0, receivedMessage.indexOf('-'));
 
@@ -336,6 +363,7 @@ void handleMessage(String receivedMessage) {
   Serial.print("Received Message: ");
   Serial.println(receivedMessage);
 }
+
 void pub_auto(bool condicao) {  // Função de publicação de atualização de estado pós irrigação automática
   if (condicao) {
     if (mqtt.connected()) {
@@ -384,11 +412,11 @@ void reconnectToWiFi() {
 }
 
 void deu_ruim() {
-  digitalWrite(33, HIGH);  // Cooler
-  digitalWrite(26, HIGH);  // Led 3
-  digitalWrite(27, HIGH);  // Led 2
-  digitalWrite(13, HIGH);  // Led 1
-  digitalWrite(19, LOW);   // Led mqtt
+  digitalWrite(Rele40, HIGH);  // Cooler
+  digitalWrite(Rele30, HIGH);  // Led 3
+  digitalWrite(Rele20, HIGH);  // Led 2
+  digitalWrite(Rele10, HIGH);  // Led 1
+  digitalWrite(LedMqtt, LOW);  // Led mqtt
 }
 
 void loop() {
@@ -406,11 +434,11 @@ void loop() {
   //t = dht.readTemperature();
   // Acionamento de cooler a partir do input da temperatura. Setpoint vem do servidor MQTT
   /*if (t >= setpoint) {
-      digitalWrite(33, LOW);
+      digitalWrite(Rele40, LOW);
       cooler = "-Cooler ligado";
       para_idle[10] = '1';
     } else {
-      digitalWrite(33, HIGH);
+      digitalWrite(Rele40, HIGH);
       cooler = "-Cooler desligado";
       para_idle[10] = '0';
     }*/
@@ -434,13 +462,13 @@ void loop() {
   if (auto_enable) {
     agora = millis();
     if (agora - tempo_auto >= horas_auto * HORA) {
-      digitalWrite(13, HIGH);
+      digitalWrite(Rele10, HIGH);
       tempo_auto = agora;
       liga_auto = HIGH;
       pub_auto(liga_auto);
     }
     if (liga_auto && (agora - tempo_auto >= minutos_auto * MINUTE)) {
-      digitalWrite(13, LOW);
+      digitalWrite(Rele10, LOW);
       liga_auto = LOW;
       pub_auto(liga_auto);
       tempo_auto = agora;
