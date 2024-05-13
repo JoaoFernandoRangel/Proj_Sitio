@@ -61,7 +61,7 @@ struct WifiConfig wifiVector[] = {
   casaLuConfig,
   escritorioConfig
 
- };
+};
 void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis) {
   Serial.println();
   Serial.print("Connecting to ");
@@ -86,7 +86,7 @@ void connectToWiFi(const struct WifiConfig& config, unsigned long timeoutMillis)
     Serial.println();
     Serial.println("Failed to connect to WiFi within the timeout. Moving to the next network.");
   }
- }
+}
 
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
@@ -122,7 +122,7 @@ unsigned long refTime = 0;  // tempo de inicio do loop
 bool ativar = true;         // indica se vai rodar a transmissao
 
 // Variáveis para operação automática
-int horas_auto = 6, minutos_auto = 15;
+int horas_auto = 4, minutos_auto = 15;
 unsigned long agora, tempo_auto = 0;
 bool liga_auto, auto_enable = HIGH;
 
@@ -143,7 +143,7 @@ String para_idle = "00000000000";
 String space = "-";
 String rx_ping = "RX-ping-";
 String msg_inicio = "inicio_rx";
- 
+
 static const char* root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
@@ -179,6 +179,19 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 )EOF";
 
 
+void muda_hora(int hora_nova) {
+  horas_auto = hora_nova;
+  String pub_horas_auto = "O novo intervalo é de " + String(horas_auto) + "horas";
+  mqtt.publish("idle_rx", pub_horas_auto.c_str());
+}
+
+void muda_min(int min_nova) {
+  minutos_auto = min_nova;
+  String pub_minutos_auto = "O novo intervalo de bomba ligada é " + String(horas_auto) + "minutos";
+  mqtt.publish("idle_rx", pub_minutos_auto.c_str());
+}
+
+
 void callback(char* controle, byte* payload, unsigned int length = 21) {
   Serial.print("Message received on topic: ");
   Serial.println(controle);
@@ -195,7 +208,7 @@ void callback(char* controle, byte* payload, unsigned int length = 21) {
   }*/
   // para_idle = receivedMessage;
   handleMessage(receivedMessage);
- }
+}
 
 
 void setup() {
@@ -237,8 +250,8 @@ void setup() {
   ntp.begin();
   ntp.setTimeOffset(-10800);  //corrige para fuso horário
                               // Inicia o sensor de temperatura
-  dht.begin();
- }
+                              //dht.begin();
+}
 void reconnect() {
   //Rotina de conexao
   while (!mqtt.connected()) {
@@ -264,7 +277,7 @@ void reconnect() {
     }
   }
   digitalWrite(19, HIGH);
- }
+}
 
 void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
@@ -322,8 +335,8 @@ void handleMessage(String receivedMessage) {
   }
   Serial.print("Received Message: ");
   Serial.println(receivedMessage);
- }
-void pub_auto(bool condicao) { // Função de publicação de atualização de estado pós irrigação automática
+}
+void pub_auto(bool condicao) {  // Função de publicação de atualização de estado pós irrigação automática
   if (condicao) {
     if (mqtt.connected()) {
       ntp.update();
@@ -341,58 +354,58 @@ void pub_auto(bool condicao) { // Função de publicação de atualização de e
       string_auto = "Acionamento automático-Será ligado novamento daqui 6 horas---" + agora;
       mqtt.publish("idle_rx", string_auto.c_str());
       para_idle[1] = '0';
-    } 
-  }
- }
-
-void wait(int ciclo, int num){ //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
-    for (int i = 0; i < num; i++) {
-      //digitalWrite(LED, HIGH);
-      delay(int(ciclo / 2));
-      //digitalWrite(LED, LOW);
-      delay(int(ciclo / 2));
-  }
- }
-void reconnectToWiFi() {
-    // Tenta reconectar-se a uma rede WiFi
-    for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
-      connectToWiFi(wifiVector[ji], 15000);  // Timeout definido como 15 segundos (15000 milissegundos)
-
-      // Verifica se está conectado ao WiFi
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("WiFi reconnected successfully.");
-        return;  // Sai da função se reconectar com sucesso
-      }
     }
-
-    // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
-    Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
-    delay(5000);
   }
+}
+
+void wait(int ciclo, int num) {  //ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
+  for (int i = 0; i < num; i++) {
+    //digitalWrite(LED, HIGH);
+    delay(int(ciclo / 2));
+    //digitalWrite(LED, LOW);
+    delay(int(ciclo / 2));
+  }
+}
+void reconnectToWiFi() {
+  // Tenta reconectar-se a uma rede WiFi
+  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji) {
+    connectToWiFi(wifiVector[ji], 15000);  // Timeout definido como 15 segundos (15000 milissegundos)
+
+    // Verifica se está conectado ao WiFi
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("WiFi reconnected successfully.");
+      return;  // Sai da função se reconectar com sucesso
+    }
+  }
+
+  // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
+  Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
+  delay(5000);
+}
 
 void deu_ruim() {
-    digitalWrite(33, HIGH);  // Cooler
-    digitalWrite(26, HIGH);  // Led 3
-    digitalWrite(27, HIGH);  // Led 2
-    digitalWrite(13, HIGH);  // Led 1
-    digitalWrite(19, LOW);   // Led mqtt
-  }
+  digitalWrite(33, HIGH);  // Cooler
+  digitalWrite(26, HIGH);  // Led 3
+  digitalWrite(27, HIGH);  // Led 2
+  digitalWrite(13, HIGH);  // Led 1
+  digitalWrite(19, LOW);   // Led mqtt
+}
 
 void loop() {
-    inicio = millis();
-    if (!mqtt.connected()) {
-      //deu_ruim();
-      reconnect();  // restart da placa dentro da função reconnect
-    }
-    if (primeiro_post == true) {
-      mqtt.publish("idle_rx", msg_inicio.c_str());
-      Serial.println(msg_inicio);
-      interacao_com_mqtt = millis();
-      primeiro_post = false;
-    }
-    t = dht.readTemperature();
-    // Acionamento de cooler a partir do input da temperatura. Setpoint vem do servidor MQTT
-    if (t >= setpoint) {
+  inicio = millis();
+  if (!mqtt.connected()) {
+    //deu_ruim();
+    reconnect();  // restart da placa dentro da função reconnect
+  }
+  if (primeiro_post == true) {
+    mqtt.publish("idle_rx", msg_inicio.c_str());
+    Serial.println(msg_inicio);
+    interacao_com_mqtt = millis();
+    primeiro_post = false;
+  }
+  //t = dht.readTemperature();
+  // Acionamento de cooler a partir do input da temperatura. Setpoint vem do servidor MQTT
+  /*if (t >= setpoint) {
       digitalWrite(33, LOW);
       cooler = "-Cooler ligado";
       para_idle[10] = '1';
@@ -400,40 +413,40 @@ void loop() {
       digitalWrite(33, HIGH);
       cooler = "-Cooler desligado";
       para_idle[10] = '0';
-    }
-    // Poll the MQTT client to check for incoming messages
-    mqtt.loop();
-    int tempo_fora_do_loop = millis();
-    int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
-    if (diferenca >= 5000) {
-      String tempo = ntp.getFormattedTime();
-      // Le a temperatura a cada 5 segundos
-      dht_String = String(t, 1);
-      String idle_ping = rx_ping + para_idle + space + tempo + cooler + space + dht_String;
-      mqtt.publish("idle_rx", idle_ping.c_str());
-      Serial.print("Publicado ");
-      Serial.print(idle_ping);
-      Serial.println(" no tópico idle_rx.");
-      diferenca = 0;
-      interacao_com_mqtt = millis();
-    }
-    // Lógica de operação automática do irrigador.
-    if (auto_enable) {
-      agora = millis();
-      if (agora - tempo_auto >= horas_auto * HORA) {
-        digitalWrite(13, HIGH);
-        tempo_auto = agora;
-        liga_auto = HIGH;
-        pub_auto(liga_auto);
-      }
-      if (liga_auto && (agora - tempo_auto >= minutos_auto * MINUTE)) {
-        digitalWrite(13, LOW);
-        liga_auto = LOW;
-        pub_auto(liga_auto);
-        tempo_auto = agora;
-      }
-    }
-    // Add any other logic or delay if needed
-    ntp.update();
-    delay(500);  // Adjust the delay according to your needs
+    }*/
+  // Poll the MQTT client to check for incoming messages
+  mqtt.loop();
+  int tempo_fora_do_loop = millis();
+  int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
+  if (diferenca >= 5000) {
+    String tempo = ntp.getFormattedTime();
+    // Le a temperatura a cada 5 segundos
+    dht_String = String(t, 1);
+    String idle_ping = rx_ping + para_idle + space + tempo;  //+ cooler + space + dht_String;
+    mqtt.publish("idle_rx", idle_ping.c_str());
+    Serial.print("Publicado ");
+    Serial.print(idle_ping);
+    Serial.println(" no tópico idle_rx.");
+    diferenca = 0;
+    interacao_com_mqtt = millis();
   }
+  // Lógica de operação automática do irrigador.
+  if (auto_enable) {
+    agora = millis();
+    if (agora - tempo_auto >= horas_auto * HORA) {
+      digitalWrite(13, HIGH);
+      tempo_auto = agora;
+      liga_auto = HIGH;
+      pub_auto(liga_auto);
+    }
+    if (liga_auto && (agora - tempo_auto >= minutos_auto * MINUTE)) {
+      digitalWrite(13, LOW);
+      liga_auto = LOW;
+      pub_auto(liga_auto);
+      tempo_auto = agora;
+    }
+  }
+  // Add any other logic or delay if needed
+  ntp.update();
+  delay(500);  // Adjust the delay according to your needs
+}
