@@ -292,7 +292,6 @@ auto-min/Numero de minutos = altera valor de intervalo de minutos na operação 
 */
 void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
-
   // Check if the received message contains "Temperatura="
   /*
   if ((receivedMessage.indexOf("Temperatura=") != -1) || (receivedMessage.indexOf("Temperatura =") != -1)) {
@@ -324,7 +323,7 @@ void handleMessage(String receivedMessage) {
     Serial.println(auto_off);
     mqtt.publish("idle_rx", auto_off.c_str());
     receivedMessage = "0000000000";
-  }/*
+  } /*
   // Código para alteração dos intervalos de operação automática
   if (receivedMessage.indexOf("auto-hora/")) {
     int startIndex = receivedMessage.indexOf('/') + 1;         // Encontra o índice do '/'
@@ -341,7 +340,7 @@ void handleMessage(String receivedMessage) {
     muda_hora(minuto__novo);
   }*/
   // Check if the received message is long enough
-  if (receivedMessage.length() >= 8) {/*
+  if (receivedMessage.length() >= 8) { /*
     //Faz a interpretação da mensagem e aciona as portas corretas
     if (receivedMessage[1] == '1') {
       digitalWrite(Rele10, LOW);
@@ -357,8 +356,8 @@ void handleMessage(String receivedMessage) {
     if (receivedMessage[7] == '1') {
       digitalWrite(Rele30, LOW);
     } else if (receivedMessage[7] == '0') {
-      digitalWrite(Rele30, HIGH);*/
-    }  // Duas sequencias de acionamento para relés com normalmente alto.
+      digitalWrite(Rele30, HIGH);}*/
+    // Duas sequencias de acionamento para relés com normalmente alto.
     if (receivedMessage[10] == '1') {
       digitalWrite(Rele40, HIGH);
     } else if (receivedMessage[10] == '0') {
@@ -386,7 +385,6 @@ void handleMessage(String receivedMessage) {
       digitalWrite(Rele40, LOW);
     }
     para_idle = receivedMessage.substring(0, receivedMessage.indexOf('-'));
-
   } else {
     Serial.println("Received message is too short");
   }
@@ -447,10 +445,10 @@ void deu_ruim() {
   digitalWrite(Rele20, HIGH);  // Led 2
   digitalWrite(Rele10, HIGH);  // Led 1
   digitalWrite(LedMqtt, LOW);  // Led mqtt*/
-  digitalWrite(Rele40, LOW);  // Cooler
-  digitalWrite(Rele30, LOW);  // Led 3
-  digitalWrite(Rele20, LOW);  // Led 2
-  digitalWrite(Rele10, LOW);  // Led 1
+  digitalWrite(Rele40, LOW);   // Cooler
+  digitalWrite(Rele30, LOW);   // Led 3
+  digitalWrite(Rele20, LOW);   // Led 2
+  digitalWrite(Rele10, LOW);   // Led 1
   digitalWrite(LedMqtt, LOW);  // Led mqtt
 }
 
