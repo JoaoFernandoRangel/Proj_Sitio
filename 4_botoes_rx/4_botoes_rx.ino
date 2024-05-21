@@ -497,14 +497,14 @@ void loop() {
   // Lógica de operação automática do irrigador.
   if (auto_enable) {
     agora = millis();
-    if (agora - tempo_auto >= horas_auto * HORA) {
+    if (agora - tempo_auto >= 10*1000/*agora - tempo_auto >= horas_auto * HORA*/) {
       //digitalWrite(Rele10, HIGH);
       digitalWrite(Rele10, LOW);
       tempo_auto = agora;
       liga_auto = HIGH;
       pub_auto(liga_auto);
     }
-    if (liga_auto && (agora - tempo_auto >= minutos_auto * MINUTE)) {
+    if (liga_auto && (agora - tempo_auto >= 10*1000/*agora - tempo_auto >= minutos_auto * MINUTE*/)) {
       //digitalWrite(Rele10, LOW);
       digitalWrite(Rele10, HIGH);
       liga_auto = LOW;
