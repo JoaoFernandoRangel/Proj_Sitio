@@ -223,10 +223,15 @@ void setup() {  //Iniciando
   //pinMode(, OUTPUT); // Led mqtt
   wait(500, 2);
   // Deixa todos os relés abertos no inicio da operação, somente para régua de relés
-  digitalWrite(Rele40, HIGH);
+  /*digitalWrite(Rele40, HIGH);
   digitalWrite(Rele30, HIGH);
   digitalWrite(Rele20, HIGH);
-  digitalWrite(Rele10, HIGH);
+  digitalWrite(Rele10, HIGH);*/
+  //digitalWrite(13, LOW);
+  digitalWrite(Rele40, LOW);
+  digitalWrite(Rele30, LOW);
+  digitalWrite(Rele20, LOW);
+  digitalWrite(Rele10, LOW);
   //digitalWrite(13, LOW);
   mqtt.setCallback(callback);
   primeiro_post = true;
@@ -309,13 +314,17 @@ void handleMessage(String receivedMessage) {
   if (receivedMessage.indexOf("auto-on") != -1) {
     auto_enable = HIGH;
     String auto_on = "automático ligado";
+    Serial.println(auto_on);
     mqtt.publish("idle_rx", auto_on.c_str());
+    receivedMessage = "0000000000";
   }
   if (receivedMessage.indexOf("auto-off") != -1) {
-    auto_enable = HIGH;
+    auto_enable = LOW;
     String auto_off = "automatico desligado";
+    Serial.println(auto_off);
     mqtt.publish("idle_rx", auto_off.c_str());
-  }
+    receivedMessage = "0000000000";
+  }/*
   // Código para alteração dos intervalos de operação automática
   if (receivedMessage.indexOf("auto-hora/")) {
     int startIndex = receivedMessage.indexOf('/') + 1;         // Encontra o índice do '/'
@@ -330,9 +339,9 @@ void handleMessage(String receivedMessage) {
     minuto_novo.trim();
     int minuto__novo = int(minuto_novo.toFloat());
     muda_hora(minuto__novo);
-  }
+  }*/
   // Check if the received message is long enough
-  if (receivedMessage.length() >= 8) {
+  if (receivedMessage.length() >= 8) {/*
     //Faz a interpretação da mensagem e aciona as portas corretas
     if (receivedMessage[1] == '1') {
       digitalWrite(Rele10, LOW);
@@ -348,12 +357,33 @@ void handleMessage(String receivedMessage) {
     if (receivedMessage[7] == '1') {
       digitalWrite(Rele30, LOW);
     } else if (receivedMessage[7] == '0') {
+      digitalWrite(Rele30, HIGH);*/
+    }  // Duas sequencias de acionamento para relés com normalmente alto.
+    if (receivedMessage[10] == '1') {
+      digitalWrite(Rele40, HIGH);
+    } else if (receivedMessage[10] == '0') {
+      digitalWrite(Rele40, LOW);
+    }
+    if (receivedMessage[1] == '1') {
+      digitalWrite(Rele10, HIGH);
+    } else if (receivedMessage[1] == '0') {
+      digitalWrite(Rele10, LOW);
+    }
+    if (receivedMessage[4] == '1') {
+      digitalWrite(Rele20, HIGH);
+
+    } else if (receivedMessage[4] == '0') {
+      digitalWrite(Rele20, LOW);
+    }
+    if (receivedMessage[7] == '1') {
       digitalWrite(Rele30, HIGH);
+    } else if (receivedMessage[7] == '0') {
+      digitalWrite(Rele30, LOW);
     }  //Removida lógica de controle a partir da mensagem do servidor para controle do cooler
     if (receivedMessage[10] == '1') {
-      digitalWrite(Rele40, LOW);
-    } else if (receivedMessage[10] == '0') {
       digitalWrite(Rele40, HIGH);
+    } else if (receivedMessage[10] == '0') {
+      digitalWrite(Rele40, LOW);
     }
     para_idle = receivedMessage.substring(0, receivedMessage.indexOf('-'));
 
@@ -412,10 +442,15 @@ void reconnectToWiFi() {
 }
 
 void deu_ruim() {
-  digitalWrite(Rele40, HIGH);  // Cooler
+  /*digitalWrite(Rele40, HIGH);  // Cooler
   digitalWrite(Rele30, HIGH);  // Led 3
   digitalWrite(Rele20, HIGH);  // Led 2
   digitalWrite(Rele10, HIGH);  // Led 1
+  digitalWrite(LedMqtt, LOW);  // Led mqtt*/
+  digitalWrite(Rele40, LOW);  // Cooler
+  digitalWrite(Rele30, LOW);  // Led 3
+  digitalWrite(Rele20, LOW);  // Led 2
+  digitalWrite(Rele10, LOW);  // Led 1
   digitalWrite(LedMqtt, LOW);  // Led mqtt
 }
 
@@ -462,13 +497,15 @@ void loop() {
   if (auto_enable) {
     agora = millis();
     if (agora - tempo_auto >= horas_auto * HORA) {
-      digitalWrite(Rele10, HIGH);
+      //digitalWrite(Rele10, HIGH);
+      digitalWrite(Rele10, LOW);
       tempo_auto = agora;
       liga_auto = HIGH;
       pub_auto(liga_auto);
     }
     if (liga_auto && (agora - tempo_auto >= minutos_auto * MINUTE)) {
-      digitalWrite(Rele10, LOW);
+      //digitalWrite(Rele10, LOW);
+      digitalWrite(Rele10, HIGH);
       liga_auto = LOW;
       pub_auto(liga_auto);
       tempo_auto = agora;
