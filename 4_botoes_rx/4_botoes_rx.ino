@@ -392,6 +392,7 @@ void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
 }
 
+String string_aciona = "11%20%30%40-", string_desliga = "10%20%30%40-";
 void pub_auto(bool condicao) {  // Função de publicação de atualização de estado pós irrigação automática
   if (condicao) {
     if (mqtt.connected()) {
@@ -400,6 +401,7 @@ void pub_auto(bool condicao) {  // Função de publicação de atualização de 
       String string_auto;
       string_auto = "Acionamento automático-Será desligado 15 minutos após agora---" + agora;
       mqtt.publish("idle_rx", string_auto.c_str());
+      mqtt.publish("controle", string_aciona.c_str());
       para_idle[1] = '1';
     }
   } else {
@@ -409,6 +411,7 @@ void pub_auto(bool condicao) {  // Função de publicação de atualização de 
       String string_auto;
       string_auto = "Acionamento automático-Será ligado novamento daqui 6 horas---" + agora;
       mqtt.publish("idle_rx", string_auto.c_str());
+      mqtt.publish("controle", string_desliga.c_str());
       para_idle[1] = '0';
     }
   }
