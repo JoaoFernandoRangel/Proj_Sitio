@@ -48,14 +48,15 @@ struct WifiConfig escritorioConfig = {
 
 struct WifiConfig rede_celular = {
   .SSID = "REDE",
-  .PASS = "12345678"
+  .PASS = "12345678a"
 };
 
 // Create an array of WifiConfig structs
 struct WifiConfig wifiVector[] = {
+  rede_celular,
   sitioNewnet,
   bia2Config,
-  rede_celular,
+  //rede_celular,
   casaPiscinaConfig,
   vivofibraConfig,
   casaLuConfig,
@@ -292,47 +293,34 @@ auto-min/Numero de minutos = altera valor de intervalo de minutos na operação 
 */
 void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
-  // Check if the received message contains "Temperatura="
-  /*
-  if ((receivedMessage.indexOf("Temperatura=") != -1) || (receivedMessage.indexOf("Temperatura =") != -1)) {
-    // Se a mensagem contém "Temperatura=", imprime no serial monitor
-    //Serial.println("Received message contains 'Temperatura='");
-    int startIndex = receivedMessage.indexOf('=') + 1;           // Encontra o índice do '='
-    String temperatura = receivedMessage.substring(startIndex);  // Extrai a parte da string após o '='
-    temperatura.trim();                                          // Remove espaços em branco extras
-    setpoint = temperatura.toFloat();
-    Serial.println(setpoint);
-    //Serial.println(receivedMessage);
-  }
-  */
-
   if (receivedMessage.indexOf("reiniciar") != -1) {
     ESP.restart();
   }
   // Código para acionamento remoto do modo de operação automático
+  if (receivedMessage.indexOf("//") != -1){ // caracteriza o inicio de uma linha de comando
   if (receivedMessage.indexOf("auto-on") != -1) {
     auto_enable = HIGH;
     String auto_on = "automático ligado";
     Serial.println(auto_on);
     mqtt.publish("idle_rx", auto_on.c_str());
-    receivedMessage = "0000000000";
+    receivedMessage = "000000000000";
   }
   if (receivedMessage.indexOf("auto-off") != -1) {
     auto_enable = LOW;
     String auto_off = "automatico desligado";
     Serial.println(auto_off);
     mqtt.publish("idle_rx", auto_off.c_str());
-    receivedMessage = "0000000000";
+    receivedMessage = "000000000000";
   } /*
   // Código para alteração dos intervalos de operação automática
-  if (receivedMessage.indexOf("auto-hora/")) {
+  if (receivedMessage.indexOf("auto-hora")) {
     int startIndex = receivedMessage.indexOf('/') + 1;         // Encontra o índice do '/'
     String hora_nova = receivedMessage.substring(startIndex);  // Extrai a parte da string após o '/'
     hora_nova.trim();
     int hora__nova = int(hora_nova.toFloat());
     muda_hora(hora__nova);
   }
-  if (receivedMessage.indexOf("auto-min/")) {
+  if (receivedMessage.indexOf("auto-min")) {
     int startIndex = receivedMessage.indexOf('/') + 1;           // Encontra o índice do '/'
     String minuto_novo = receivedMessage.substring(startIndex);  // Extrai a parte da string após o '/'
     minuto_novo.trim();
@@ -340,6 +328,7 @@ void handleMessage(String receivedMessage) {
     muda_hora(minuto__novo);
   }*/
   // Check if the received message is long enough
+  }
   if (receivedMessage.length() >= 8) { /*
     //Faz a interpretação da mensagem e aciona as portas corretas
     if (receivedMessage[1] == '1') {
@@ -392,7 +381,7 @@ void handleMessage(String receivedMessage) {
   Serial.println(receivedMessage);
 }
 
-String string_aciona = "11%20%30%40-", string_desliga = "10%20%30%40-";
+String string_liga = "11%20%30%40-", string_desliga = "10%20%30%40-";
 void pub_auto(bool condicao) {  // Função de publicação de atualização de estado pós irrigação automática
   if (condicao) {
     if (mqtt.connected()) {
@@ -401,7 +390,7 @@ void pub_auto(bool condicao) {  // Função de publicação de atualização de 
       String string_auto;
       string_auto = "Acionamento automático-Será desligado 15 minutos após agora---" + agora;
       mqtt.publish("idle_rx", string_auto.c_str());
-      mqtt.publish("controle", string_aciona.c_str());
+      mqtt.publish("controle", string_liga.c_str());
       para_idle[1] = '1';
     }
   } else {
@@ -497,19 +486,19 @@ void loop() {
   // Lógica de operação automática do irrigador.
   if (auto_enable) {
     agora = millis();
-    if (agora - tempo_auto >= 10*1000/*agora - tempo_auto >= horas_auto * HORA*/) {
-      //digitalWrite(Rele10, HIGH);
-      digitalWrite(Rele10, LOW);
+    if(!liga_auto && (agora - tempo_auto >= horas_auto * HORA)) {
+      digitalWrite(Rele10, HIGH);
       tempo_auto = agora;
       liga_auto = HIGH;
-      pub_auto(liga_auto);
+      pub_auto(liga_auto); //liga o relay
+      Serial.println("primeiro if");
     }
-    if (liga_auto && (agora - tempo_auto >= 10*1000/*agora - tempo_auto >= minutos_auto * MINUTE*/)) {
-      //digitalWrite(Rele10, LOW);
-      digitalWrite(Rele10, HIGH);
+    if (liga_auto && (agora - tempo_auto >= minutos_auto * MINUTE)) {
+      tempo_auto = agora;
       liga_auto = LOW;
       pub_auto(liga_auto);
-      tempo_auto = agora;
+      digitalWrite(Rele10, LOW);
+      Serial.println("Segundo if");
     }
   }
   // Add any other logic or delay if needed
