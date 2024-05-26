@@ -2,7 +2,7 @@
 #include <NTPClient.h>
 #include "String.h"
 #include "time.h"
-#include "PubSubClient.h"
+#include "PubSubClient.h" // MQTT de fato
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
@@ -44,14 +44,13 @@ struct WifiConfig rede_celular = {
 
 // Create an array of WifiConfig structs
 struct WifiConfig wifiVector[] = {
-    bia2Config,
     sitioNewnet,
+    bia2Config,    
     rede_celular,
     casaPiscinaConfig,
     vivofibraConfig,
     casaLuConfig,
     escritorioConfig
-
 };
 void connectToWiFi(const struct WifiConfig &config, unsigned long timeoutMillis)
 {
