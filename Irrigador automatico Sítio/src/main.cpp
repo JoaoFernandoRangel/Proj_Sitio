@@ -504,7 +504,7 @@ void loop()
     Serial.print(idle_ping);
     Serial.print(" no tópico: ");
     Serial.println(top_idle);
-    idle = inicio;
+    idle = inicio;0
   }
   if (!mqtt.connected())
   {
@@ -513,7 +513,7 @@ void loop()
   }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
-
+  /* Modularizar a função de operação automática */
   // Lógica de operação automática do irrigador.
   if (auto_enable)
   {
