@@ -17,8 +17,8 @@ struct WifiConfig {
 
 // Instantiate instances of the struct for each network
 struct WifiConfig rede = {
-  .SSID = "rede",
-  .PASS = "senha"
+  .SSID = "VIVO GUI",
+  .PASS = "123456789"
 };
 // Create an array of WifiConfig structs
 struct WifiConfig wifiVector[] = {
@@ -59,10 +59,10 @@ NTPClient ntp(ntpUDP);
 
 
 //Define informacoes MQTT
-#define SERVER "link"
-#define SERVERPORT porta
-#define user "user"
-#define pass "pass"
+#define SERVER "cca032668b6b42828366174dc5fecf41.s1.eu.hivemq.cloud"
+#define SERVERPORT 8883
+#define user "esp32"
+#define pass "Guilherme1"
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 
@@ -106,14 +106,14 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 void callback(char* controle, byte* payload, unsigned int length = 21) {
   Serial.print("Message received on topic: ");
   Serial.println(controle);
-  interacao_com_mqtt = millis();
   String receivedMessage = "";
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
   }
-  handleMessage(receivedMessage);
+  //handleMessage(receivedMessage);
 }
 
+bool primeiro_post;
 
 void setup() {  //Iniciando
   Serial.begin(9600);
@@ -139,6 +139,7 @@ void setup() {  //Iniciando
   ntp.setTimeOffset(-10800);  //corrige para fuso horário
                               // Inicia o sensor de temperatura
                               //dht.begin();
+  ntp.update();
 }
 int contador;
 void reconnect() {
@@ -156,7 +157,7 @@ void reconnect() {
       Serial.print("falha, rc=");
       Serial.print(mqtt.state());
       Serial.println(" tentando novamente em 5 segundos");
-      wait(1000, 5);
+      //wait(1000, 5);
       contador++;
       Serial.println(contador);
     }
@@ -186,32 +187,29 @@ void reconnectToWiFi() {
   // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
   Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
   delay(5000);
+  
 }
-unsigned long interacao_com_mqtt;
-bool primeiro_post = HIGH;
+unsigned long interacao_com_mqtt, agora, antes=0;
 String msg_inicio = "hello";
-String topico = "aaaa";
+String topico = "idle";
+String idle = "idle_";
 void loop() {
-  inicio = millis();
   if (!mqtt.connected()) {
     //deu_ruim();
-    reconnect();  // restart da placa dentro da função reconnect
+    reconnect();  
   }
   if (primeiro_post == true) {
-    mqtt.publish(topico, msg_inicio.c_str());
+    mqtt.publish(topico.c_str(), msg_inicio.c_str());
     Serial.println(msg_inicio);
-    interacao_com_mqtt = millis();
     primeiro_post = false;
   }
   // Poll the MQTT client to check for incoming messages
   mqtt.loop();
-  int tempo_fora_do_loop = millis();
-  int diferenca = tempo_fora_do_loop - interacao_com_mqtt;
-  if (diferenca >= 5000) {
+  agora = millis();
+  if (agora - antes >= 5000) {
     String tempo = ntp.getFormattedTime();
-    mqtt.publish(topico, tempo.c_str());
-    diferenca = 0;
-    interacao_com_mqtt = millis();
+    mqtt.publish(topico.c_str(), (tempo + idle).c_str());
+    antes = agora;
   }
   // Add any other logic or delay if needed
   ntp.update();
