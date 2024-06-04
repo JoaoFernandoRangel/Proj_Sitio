@@ -1,5 +1,4 @@
 //Precisa apertar 'boot' for fazer upload do código, na parte de 'connecting'
-
 #include <Arduino.h>
 #include <NTPClient.h>
 #include "String.h"
@@ -56,6 +55,9 @@ WiFiClientSecure client;
 WiFiUDP ntpUDP;
 NTPClient ntp(ntpUDP);
 
+//Define os IO's
+#define pin_sensor 34
+#define pin_buzzer 26
 
 
 //Define informacoes MQTT
@@ -102,15 +104,25 @@ mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
-
-void callback(char* controle, byte* payload, unsigned int length = 21) {
+String topico = "idle", topico1 = "status";
+void handleMessage(String receivedMessage) {
+  // 9 + 2 -> 12 item, 11 identificador
+  if (receivedMessage[11] == '1'){
+    digitalWrite(pin_buzzer, HIGH);
+    Serial.println("Buzzer acionado");
+  }else{
+    digitalWrite(pin_buzzer, LOW);
+    Serial.println("Buzzer desligado");
+  }
+}
+void callback(char* topico1, byte* payload, unsigned int length = 21) {
   Serial.print("Message received on topic: ");
-  Serial.println(controle);
+  Serial.println(topico1);
   String receivedMessage = "";
   for (int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
   }
-  //handleMessage(receivedMessage);
+  handleMessage(receivedMessage);
 }
 
 bool primeiro_post;
@@ -140,6 +152,8 @@ void setup() {  //Iniciando
                               // Inicia o sensor de temperatura
                               //dht.begin();
   ntp.update();
+  pinMode(pin_buzzer, OUTPUT);
+  pinMode(pin_sensor, INPUT);
 }
 int contador;
 void reconnect() {
@@ -168,9 +182,7 @@ void reconnect() {
   //digitalWrite(LedMqtt, HIGH);
 }
 
-void handleMessage(String receivedMessage) {
-  
-}
+
 
 void reconnectToWiFi() {
   // Tenta reconectar-se a uma rede WiFi
@@ -183,17 +195,36 @@ void reconnectToWiFi() {
       return;  // Sai da função se reconectar com sucesso
     }
   }
-
   // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
   Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
-  delay(5000);
-  
+  delay(5000);  
 }
 unsigned long interacao_com_mqtt, agora, antes=0;
 String msg_inicio = "hello";
-String topico = "idle";
-String idle = "idle_";
+
+String idle = "_idle", espaco = "@@";
+String info_vibracao, pre_analise;
+//Mensagem padrão = Data&Hora @@ info_vibração @@ pré-análise
+bool vibracao;
+void processa_info(bool condicao){
+  if (condicao){
+    info_vibracao = "1";
+    pre_analise = "Vibrando";
+  } else{
+    info_vibracao = "0";
+    pre_analise = "Estável";
+  }
+  mqtt.publish(topico1.c_str(), (ntp.getFormattedTime() + espaco + info_vibracao + espaco + pre_analise).c_str());
+}
+
+unsigned long leitura = 0, freq_leitura = 1;
 void loop() {
+  agora = millis();
+  if (agora - leitura >= (1000/(freq_leitura))){    
+  vibracao = digitalRead(pin_sensor);    
+  processa_info(vibracao);
+  leitura = agora;
+  }
   if (!mqtt.connected()) {
     //deu_ruim();
     reconnect();  
@@ -204,12 +235,13 @@ void loop() {
     primeiro_post = false;
   }
   // Poll the MQTT client to check for incoming messages
-  mqtt.loop();
-  agora = millis();
+  mqtt.loop(); // Vai para o callback
+  
   if (agora - antes >= 5000) {
     String tempo = ntp.getFormattedTime();
     mqtt.publish(topico.c_str(), (tempo + idle).c_str());
     antes = agora;
+    Serial.println("Mensagem Publicada");
   }
   // Add any other logic or delay if needed
   ntp.update();
