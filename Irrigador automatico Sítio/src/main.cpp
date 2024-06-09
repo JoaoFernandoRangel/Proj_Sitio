@@ -566,7 +566,7 @@ void loop()
       Serial.println("A bomba foi desligada");
     }
   }
-  for (int iii = 1; iii < 6; iii++)
+  for (int iii = 1; iii < 5; iii++)
   {
     double_check(handle_message_check[iii], timer_check, portas[iii]);
   }
