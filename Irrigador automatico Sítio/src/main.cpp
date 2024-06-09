@@ -97,11 +97,41 @@ NTPClient ntp(ntpUDP);
 #define Rele40 33
 #define LedMqtt 19
 
+int portas[] = {0, 13, 27, 26, 33};
+
+void check_state(bool check1, bool check2, int porta)
+{
+  if ((check1 || check2) == true)
+  {
+    digitalWrite(porta, HIGH);
+  }
+  else
+  {
+    digitalWrite(porta, LOW);
+  }
+}
+bool handle_message_check[] = {HIGH, HIGH, HIGH, HIGH, HIGH};
+bool timer_check = LOW;
+
+void double_check(bool check1, bool check2, int porta)
+{
+  // Function body
+  if ((check1 || check2) == true)
+  {
+    digitalWrite(porta, HIGH);
+  }
+  else
+  {
+    digitalWrite(porta, LOW);
+  }
+}
+
 // Define informacoes MQTT
 #define SERVER "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
 #define SERVERPORT 8883
 #define user "RX_Esp32"
 #define pass "Campos0102"
+
 // Cria os clientes MQTT
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
@@ -250,63 +280,44 @@ void handleMessage(String receivedMessage)
     // Faz a interpretação da mensagem e aciona as portas corretas
     if (receivedMessage[1] == '1')
     {
-      digitalWrite(Rele10, LOW);
+      // digitalWrite(Rele10, LOW);
+      handle_message_check[1] = LOW;
     }
     else if (receivedMessage[1] == '0')
     {
-      digitalWrite(Rele10, HIGH);
+      // digitalWrite(Rele10, HIGH);
+      handle_message_check[1] = HIGH;
     }
     if (receivedMessage[4] == '1')
     {
-      digitalWrite(Rele20, LOW);
+      // digitalWrite(Rele20, LOW);
+      handle_message_check[2] = LOW;
     }
     else if (receivedMessage[4] == '0')
     {
-      digitalWrite(Rele20, HIGH);
+      // digitalWrite(Rele20, HIGH);
+      handle_message_check[2] = HIGH;
     }
     if (receivedMessage[7] == '1')
     {
-      digitalWrite(Rele30, LOW);
+      // digitalWrite(Rele30, LOW);
+      handle_message_check[3] = LOW;
     }
     else if (receivedMessage[7] == '0')
     {
-      digitalWrite(Rele30, HIGH);
+      handle_message_check[3] = HIGH;
+      // digitalWrite(Rele30, HIGH);
     }
     if (receivedMessage[10] == '1')
     {
-      digitalWrite(Rele40, LOW);
+      // digitalWrite(Rele40, LOW);
+      handle_message_check[4] = LOW;
     }
     else if (receivedMessage[10] == '0')
     {
-      digitalWrite(Rele40, HIGH);
+      handle_message_check[4] = HIGH;
+      // digitalWrite(Rele40, HIGH);
     }
-    // Duas sequencias de acionamento para relés com normalmente alto.
-    /*if (receivedMessage[10] == '1') {
-      digitalWrite(Rele40, HIGH);
-    } else if (receivedMessage[10] == '0') {
-      digitalWrite(Rele40, LOW);
-    }
-    if (receivedMessage[1] == '1') {
-      digitalWrite(Rele10, HIGH);
-    } else if (receivedMessage[1] == '0') {
-      digitalWrite(Rele10, LOW);
-    }
-    if (receivedMessage[4] == '1') {
-      digitalWrite(Rele20, HIGH);
-
-    } else if (receivedMessage[4] == '0') {
-      digitalWrite(Rele20, LOW);
-    }
-    if (receivedMessage[7] == '1') {
-      digitalWrite(Rele30, HIGH);
-    } else if (receivedMessage[7] == '0') {
-      digitalWrite(Rele30, LOW);
-    }  //Removida lógica de controle a partir da mensagem do servidor para controle do cooler
-    if (receivedMessage[10] == '1') {
-      digitalWrite(Rele40, HIGH);
-    } else if (receivedMessage[10] == '0') {
-      digitalWrite(Rele40, LOW);
-    }*/
   }
   else
   {
@@ -488,14 +499,13 @@ String string_idle_constructor()
 void loop()
 {
   ntp.update();
-  inicio = millis();
   if (primeiro_post == true)
   {
     mqtt.publish(top_idle.c_str(), msg_inicio.c_str());
     Serial.println(msg_inicio);
     primeiro_post = false;
   }
-  if ((inicio - idle) >= 5000)
+  if ((millis() - idle) >= 5000)
   {
     tempo = ntp.getFormattedTime();
     idle_ping = rx_ping + string_idle_constructor() + space + tempo;
@@ -504,7 +514,7 @@ void loop()
     Serial.print(idle_ping);
     Serial.print(" no tópico: ");
     Serial.println(top_idle);
-    idle = inicio;0
+    idle = millis();
   }
   if (!mqtt.connected())
   {
@@ -528,8 +538,12 @@ void loop()
       tempo_auto = agora;
       string_comando[1] = '1';
       string_envia_l = string_comando + "___Mensagem automática";
+      timer_check = HIGH;
       Serial.println(string_envia_l);
-      mqtt.publish(top_ctrl.c_str(), string_envia_l.c_str());
+      if (mqtt.connected())
+      {
+        mqtt.publish(top_ctrl.c_str(), string_envia_l.c_str());
+      }
       liga_auto = HIGH;
       Serial.println("A bomba está ligada");
     }
@@ -545,9 +559,16 @@ void loop()
       string_comando[1] = '0';
       string_envia_d = string_comando + "___Mensagem automática";
       Serial.println(string_envia_d);
+      if (mqtt.connected()){
       mqtt.publish(top_ctrl.c_str(), string_envia_d.c_str());
+      }
+      timer_check = LOW;
       Serial.println("A bomba foi desligada");
     }
+  }
+  for (int iii = 1; iii < 6; iii++)
+  {
+    double_check(handle_message_check[iii], timer_check, portas[iii]);
   }
   // Add any other logic or delay if needed;
   delay(100); // Adjust the delay according to your needs
