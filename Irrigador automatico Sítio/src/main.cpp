@@ -53,36 +53,20 @@ struct WifiConfig wifiVector[] = {
     escritorioConfig
 
 };
-void connectToWiFi(const struct WifiConfig &config, unsigned long timeoutMillis)
-{
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(config.SSID);
+/*
+*Declarações de funções
+*/
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(config.SSID, config.PASS);
-
-  unsigned long startTime = millis();
-
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeoutMillis)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    Serial.println();
-    Serial.println("WiFi connected");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
-  else
-  {
-    Serial.println();
-    Serial.println("Failed to connect to WiFi within the timeout. Moving to the next network.");
-  }
-}
+void connectToWiFi(const struct WifiConfig &config, unsigned long timeoutMillis);
+void double_check(bool check1, bool check2, int porta);
+void reconnect(bool check_first);
+unsigned long millisZero();
+void wait(int ciclo, int num);
+void handleMessage(String receivedMessage);
+void callback(char *controle, byte *payload, unsigned int length);
+void Wifi_recon();
+void deu_ruim();
+String string_idle_constructor();
 
 // Cria um WiFiClient class para utilizar no MQTT server.
 WiFiClientSecure client;
@@ -98,33 +82,9 @@ NTPClient ntp(ntpUDP);
 #define LedMqtt 19
 
 int portas[] = {0, 13, 27, 26, 33};
-
-void check_state(bool check1, bool check2, int porta)
-{
-  if ((check1 || check2) == true)
-  {
-    digitalWrite(porta, HIGH);
-  }
-  else
-  {
-    digitalWrite(porta, LOW);
-  }
-}
 bool handle_message_check[] = {HIGH, HIGH, HIGH, HIGH, HIGH};
 bool timer_check = LOW;
-
-void double_check(bool check1, bool check2, int porta)
-{
-  // Function body
-  if ((check1 || check2) == true)
-  {
-    digitalWrite(porta, HIGH);
-  }
-  else
-  {
-    digitalWrite(porta, LOW);
-  }
-}
+bool primeiro_connect = true;
 
 // Define informacoes MQTT
 #define SERVER "25d06c5109f94ef78c7bcfc1c33fdf20.s2.eu.hivemq.cloud"
@@ -136,11 +96,6 @@ void double_check(bool check1, bool check2, int porta)
 PubSubClient mqtt(client);
 unsigned long lastMsg = 0;
 int contador = 0;
-
-// prototipos de funcao
-void reconnect();
-unsigned long millisZero();
-void wait(int ciclo, int num);
 
 // Variáveis de frequência e tempo
 int f = 10;                // valor em Hz
@@ -226,6 +181,202 @@ Dicionário de comandos para MQTT
 //reinicar = reinicia a Esp32
 */
 
+
+
+void setup()
+{ // Iniciando
+  Serial.begin(9600);
+  Serial.println("Inicio");
+
+  // declara os pinos de saída
+  pinMode(Rele40, OUTPUT);  // Cooler
+  pinMode(Rele30, OUTPUT);  // Led 3
+  pinMode(Rele20, OUTPUT);  // Led 2
+  pinMode(Rele10, OUTPUT);  // Led 1
+  pinMode(LedMqtt, OUTPUT); // Led mqtt
+  wait(500, 2);
+  // Deixa todos os relés abertos no inicio da operação, somente para régua de relés
+  digitalWrite(Rele40, HIGH);
+  digitalWrite(Rele30, HIGH);
+  digitalWrite(Rele20, HIGH);
+  digitalWrite(Rele10, HIGH);
+  // digitalWrite(13, LOW);
+  /*
+  digitalWrite(Rele40, LOW);
+  digitalWrite(Rele30, LOW);
+  digitalWrite(Rele20, LOW);
+  digitalWrite(Rele10, LOW);
+
+  */
+  // digitalWrite(13, LOW);
+  mqtt.setCallback(callback);
+  primeiro_post = true;
+  // Conecta o Wifi na rede
+  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji)
+  {
+    connectToWiFi(wifiVector[ji], 15000); // Timeout set to 15 seconds (15000 milliseconds)
+    // Check if connected to WiFi
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      break; // Exit the loop if connected successfully
+    }
+  }
+
+  // Conecta servidor MQTT
+  client.setCACert(root_ca);
+  mqtt.setServer(SERVER, SERVERPORT);
+  reconnect(primeiro_connect);
+  primeiro_connect = false;
+  // Inicia NTP para adquirir data e hora
+  ntp.begin();
+  ntp.setTimeOffset(-10800); // corrige para fuso horário
+  /*
+  Inicia o sensor de temperatura
+  dht.begin();
+  */
+  ntp.update();
+}
+
+
+/*
+Dicionário de comandos para MQTT
+reinicar => reinicia a Esp32
+10%20%30%40- => controle individual de cada GPIO relacionada a régua de relés
+auto-on => Liga operação automática
+auto-off => Desliga operação automática
+auto-hora=/Numero de horas => altera valor de intervalo de horas na operação automática
+auto-min=/Numero de minutos => altera valor de intervalo de minutos na operação automática
+*/
+
+
+void loop()
+{
+  ntp.update();
+  if (primeiro_post == true)
+  {
+    mqtt.publish(top_idle.c_str(), msg_inicio.c_str());
+    Serial.println(msg_inicio);
+    primeiro_post = false;
+  }
+  if ((millis() - idle) >= 5000)
+  {
+    tempo = ntp.getFormattedTime();
+    idle_ping = rx_ping + string_idle_constructor() + space + tempo;
+    mqtt.publish(top_idle.c_str(), idle_ping.c_str());
+    Serial.print("Publicado ");
+    Serial.print(idle_ping);
+    Serial.print(" no tópico: ");
+    Serial.println(top_idle);
+    idle = millis();
+  }
+  if (!mqtt.connected())
+  {
+    if (!(WiFi.status() == WL_CONNECTED))
+    {
+      // deu_ruim();
+      Wifi_recon();
+    }
+    // restart da placa dentro da função reconnect
+
+    reconnect(primeiro_connect);
+  }
+  // Poll the MQTT client to check for incoming messages
+  mqtt.loop();
+  /* Modularizar a função de operação automática */
+  // Lógica de operação automática do irrigador.
+  if (auto_enable)
+  {
+    agora = millis();
+    if (!liga_auto && (agora - tempo_auto >= off_auto * horas))
+    {
+      Serial.print("valor ligado: ");
+      Serial.print(on_auto);
+      Serial.print("||| ");
+      Serial.print("valor desligado: ");
+      Serial.println(off_auto);
+      tempo_auto = agora;
+      string_comando[1] = '1';
+      string_envia_l = string_comando + "___Mensagem automática";
+      timer_check = HIGH;
+      Serial.println(string_envia_l);
+      if (mqtt.connected())
+      {
+        mqtt.publish(top_ctrl.c_str(), string_envia_l.c_str());
+      }
+      liga_auto = HIGH;
+      Serial.println("A bomba está ligada");
+    }
+    else if (liga_auto && (agora - tempo_auto >= on_auto * minutos))
+    {
+      Serial.print("valor ligado: ");
+      Serial.print(on_auto);
+      Serial.print("||| ");
+      Serial.print("valor desligado: ");
+      Serial.println(off_auto);
+      tempo_auto = agora;
+      liga_auto = LOW;
+      string_comando[1] = '0';
+      string_envia_d = string_comando + "___Mensagem automática";
+      Serial.println(string_envia_d);
+      if (mqtt.connected())
+      {
+        mqtt.publish(top_ctrl.c_str(), string_envia_d.c_str());
+      }
+      timer_check = LOW;
+      Serial.println("A bomba foi desligada");
+    }
+  }
+  for (int iii = 1; iii < 5; iii++)
+  {
+    double_check(handle_message_check[iii], timer_check, portas[iii]);
+  }
+  // Add any other logic or delay if needed;
+  delay(100); // Adjust the delay according to your needs
+}
+
+
+void connectToWiFi(const struct WifiConfig &config, unsigned long timeoutMillis)
+{
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(config.SSID);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(config.SSID, config.PASS);
+
+  unsigned long startTime = millis();
+
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeoutMillis)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println();
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+  else
+  {
+    Serial.println();
+    Serial.println("Failed to connect to WiFi within the timeout. Moving to the next network.");
+  }
+}
+void double_check(bool check1, bool check2, int porta)
+{
+  // Function body
+  if ((check1 || check2) == true)
+  {
+    digitalWrite(porta, HIGH);
+  }
+  else
+  {
+    digitalWrite(porta, LOW);
+  }
+}
 void handleMessage(String receivedMessage)
 {
 
@@ -326,7 +477,6 @@ void handleMessage(String receivedMessage)
   Serial.print("Received Message: ");
   Serial.println(receivedMessage);
 }
-
 void callback(char *controle, byte *payload, unsigned int length = 21)
 {
   Serial.print("Message received on topic: ");
@@ -339,104 +489,67 @@ void callback(char *controle, byte *payload, unsigned int length = 21)
   }
   handleMessage(receivedMessage);
 }
-
-void setup()
-{ // Iniciando
-  Serial.begin(9600);
-  Serial.println("Inicio");
-
-  // declara os pinos de saída
-  pinMode(Rele40, OUTPUT);  // Cooler
-  pinMode(Rele30, OUTPUT);  // Led 3
-  pinMode(Rele20, OUTPUT);  // Led 2
-  pinMode(Rele10, OUTPUT);  // Led 1
-  pinMode(LedMqtt, OUTPUT); // Led mqtt
-  wait(500, 2);
-  // Deixa todos os relés abertos no inicio da operação, somente para régua de relés
-  digitalWrite(Rele40, HIGH);
-  digitalWrite(Rele30, HIGH);
-  digitalWrite(Rele20, HIGH);
-  digitalWrite(Rele10, HIGH);
-  // digitalWrite(13, LOW);
-  /*
-  digitalWrite(Rele40, LOW);
-  digitalWrite(Rele30, LOW);
-  digitalWrite(Rele20, LOW);
-  digitalWrite(Rele10, LOW);
-
-  */
-  // digitalWrite(13, LOW);
-  mqtt.setCallback(callback);
-  primeiro_post = true;
-  // Conecta o Wifi na rede
-  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji)
-  {
-    connectToWiFi(wifiVector[ji], 15000); // Timeout set to 15 seconds (15000 milliseconds)
-    // Check if connected to WiFi
-    if (WiFi.status() == WL_CONNECTED)
-    {
-      break; // Exit the loop if connected successfully
-    }
-  }
-
-  // Conecta servidor MQTT
-  client.setCACert(root_ca);
-  mqtt.setServer(SERVER, SERVERPORT);
-  reconnect();
-
-  // Inicia NTP para adquirir data e hora
-  ntp.begin();
-  ntp.setTimeOffset(-10800); // corrige para fuso horário
-  /*
-  Inicia o sensor de temperatura
-  dht.begin();
-  */
-  ntp.update();
-}
-void reconnect()
+void reconnect(bool check_first)
 {
-  // Rotina de conexao
-  if (!mqtt.connected())
+  if (check_first)
   {
-    digitalWrite(LedMqtt, LOW);
-    Serial.print("Conectando ao broker MQTT...");
-    String clientId = "Esp32";
-    clientId += String(random(0xffff), HEX);
+    // Rotina de conexao
+    while (!mqtt.connected())
+    {
+      digitalWrite(LedMqtt, LOW);
+      Serial.print("Conectando ao broker MQTT...");
+      String clientId = "Esp32";
+      clientId += String(random(0xffff), HEX);
 
-    if (mqtt.connect(clientId.c_str(), user, pass))
-    {
-      Serial.println("conectado");
-      contador = 0;
-      mqtt.subscribe(top_ctrl.c_str(), 0); // inscricao no topico 'controle'
-    }
-    else
-    {
-      Serial.print("falha, rc=");
-      Serial.print(mqtt.state());
-      Serial.println(" tentando novamente em 5 segundos");
-      wait(1000, 5);
-      contador++;
-      Serial.println(contador);
-    }
-    if (contador == 15)
-    {
-      ESP.restart();
+      if (mqtt.connect(clientId.c_str(), user, pass))
+      {
+        Serial.println("conectado");
+        contador = 0;
+        mqtt.subscribe(top_ctrl.c_str(), 0); // inscricao no topico 'controle'
+      }
+      else
+      {
+        Serial.print("falha, rc=");
+        Serial.print(mqtt.state());
+        Serial.println(" tentando novamente em 5 segundos");
+        wait(1000, 5);
+        contador++;
+        Serial.println(contador);
+      }
+      if (contador == 15)
+      {
+        ESP.restart();
+      }
     }
   }
-  digitalWrite(LedMqtt, HIGH);
-}
-/*
-Dicionário de comandos para MQTT
-reinicar => reinicia a Esp32
-10%20%30%40- => controle individual de cada GPIO relacionada a régua de relés
-auto-on => Liga operação automática
-auto-off => Desliga operação automática
-auto-hora=/Numero de horas => altera valor de intervalo de horas na operação automática
-auto-min=/Numero de minutos => altera valor de intervalo de minutos na operação automática
-*/
+  else
+  {
+    if (!mqtt.connected())
+    {
+      digitalWrite(LedMqtt, LOW);
+      Serial.print("Conectando ao broker MQTT...");
+      String clientId = "Esp32";
+      clientId += String(random(0xffff), HEX);
 
-void wait(int ciclo, int num)
-{ // ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
+      if (mqtt.connect(clientId.c_str(), user, pass))
+      {
+        Serial.println("conectado");
+        mqtt.subscribe(top_ctrl.c_str(), 0); // inscricao no topico 'controle'
+      }
+      else
+      {
+        Serial.print("falha, rc=");
+        Serial.print(mqtt.state());
+        Serial.println(" tentando novamente em 5 segundos");
+        wait(1000, 5);
+      }
+    }
+    digitalWrite(LedMqtt, HIGH);
+  }
+}
+void wait(int ciclo, int num){ 
+
+  // ciclo -> tempo do ciclo, num -> numero de repeticoes, LED -> porta led
   for (int i = 0; i < num; i++)
   {
     // digitalWrite(LED, HIGH);
@@ -444,25 +557,6 @@ void wait(int ciclo, int num)
     // digitalWrite(LED, LOW);
     delay(int(ciclo / 2));
   }
-}
-void reconnectToWiFi()
-{
-  // Tenta reconectar-se a uma rede WiFi
-  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji)
-  {
-    connectToWiFi(wifiVector[ji], 15000); // Timeout definido como 15 segundos (15000 milissegundos)
-
-    // Verifica se está conectado ao WiFi
-    if (WiFi.status() == WL_CONNECTED)
-    {
-      Serial.println("WiFi reconnected successfully.");
-      return; // Sai da função se reconectar com sucesso
-    }
-  }
-
-  // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
-  Serial.println("Failed to reconnect to WiFi. Retrying in 5 seconds...");
-  delay(5000);
 }
 
 void deu_ruim()
@@ -478,7 +572,6 @@ void deu_ruim()
   digitalWrite(Rele10, LOW);  // Led 1
   digitalWrite(LedMqtt, LOW); // Led mqtt*/
 }
-
 String string_idle_constructor()
 {
   String envia_idle = "10%20%30%40";
@@ -495,81 +588,20 @@ String string_idle_constructor()
   envia_idle[10] = digitalRead(Rele40) ? '0' : '1';
   return envia_idle;
 }
-
-void loop()
+void Wifi_recon()
 {
-  ntp.update();
-  if (primeiro_post == true)
+  // Tenta reconectar-se a uma rede WiFi
+  for (size_t ji = 0; ji < sizeof(wifiVector) / sizeof(wifiVector[0]); ++ji)
   {
-    mqtt.publish(top_idle.c_str(), msg_inicio.c_str());
-    Serial.println(msg_inicio);
-    primeiro_post = false;
-  }
-  if ((millis() - idle) >= 5000)
-  {
-    tempo = ntp.getFormattedTime();
-    idle_ping = rx_ping + string_idle_constructor() + space + tempo;
-    mqtt.publish(top_idle.c_str(), idle_ping.c_str());
-    Serial.print("Publicado ");
-    Serial.print(idle_ping);
-    Serial.print(" no tópico: ");
-    Serial.println(top_idle);
-    idle = millis();
-  }
-  if (!mqtt.connected())
-  {
-    // deu_ruim();
-    reconnect(); // restart da placa dentro da função reconnect
-  }
-  // Poll the MQTT client to check for incoming messages
-  mqtt.loop();
-  /* Modularizar a função de operação automática */
-  // Lógica de operação automática do irrigador.
-  if (auto_enable)
-  {
-    agora = millis();
-    if (!liga_auto && (agora - tempo_auto >= off_auto * horas))
+    connectToWiFi(wifiVector[ji], 15000); // Timeout definido como 15 segundos (15000 milissegundos)
+
+    // Verifica se está conectado ao WiFi
+    if (WiFi.status() == WL_CONNECTED)
     {
-      Serial.print("valor ligado: ");
-      Serial.print(on_auto);
-      Serial.print("||| ");
-      Serial.print("valor desligado: ");
-      Serial.println(off_auto);
-      tempo_auto = agora;
-      string_comando[1] = '1';
-      string_envia_l = string_comando + "___Mensagem automática";
-      timer_check = HIGH;
-      Serial.println(string_envia_l);
-      if (mqtt.connected())
-      {
-        mqtt.publish(top_ctrl.c_str(), string_envia_l.c_str());
-      }
-      liga_auto = HIGH;
-      Serial.println("A bomba está ligada");
+      Serial.println("WiFi reconnected successfully.");
+      return; // Sai da função se reconectar com sucesso
     }
-    else if (liga_auto && (agora - tempo_auto >= on_auto * minutos))
-    {
-      Serial.print("valor ligado: ");
-      Serial.print(on_auto);
-      Serial.print("||| ");
-      Serial.print("valor desligado: ");
-      Serial.println(off_auto);
-      tempo_auto = agora;
-      liga_auto = LOW;
-      string_comando[1] = '0';
-      string_envia_d = string_comando + "___Mensagem automática";
-      Serial.println(string_envia_d);
-      if (mqtt.connected()){
-      mqtt.publish(top_ctrl.c_str(), string_envia_d.c_str());
-      }
-      timer_check = LOW;
-      Serial.println("A bomba foi desligada");
-    }
-  }
-  for (int iii = 1; iii < 5; iii++)
-  {
-    double_check(handle_message_check[iii], timer_check, portas[iii]);
-  }
-  // Add any other logic or delay if needed;
-  delay(100); // Adjust the delay according to your needs
+  }  // Se não conseguir se reconectar a nenhuma rede, aguarde um curto período antes de tentar novamente
+  Serial.println("Failed to reconnect to WiFi. Retrying in 1 second...");
+  delay(1000);
 }
