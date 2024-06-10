@@ -396,7 +396,7 @@ void setup()
 void reconnect()
 {
   // Rotina de conexao
-  while (!mqtt.connected())
+  if (!mqtt.connected())
   {
     digitalWrite(LedMqtt, LOW);
     Serial.print("Conectando ao broker MQTT...");
